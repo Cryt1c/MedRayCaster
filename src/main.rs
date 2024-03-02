@@ -19,41 +19,48 @@ use std::str;
 //     -0.5, 0.5, 0.0, // top left];
 // ];
 
-static VERTEX_DATA: [GLfloat; 12] = [
-    0.5, 0.5, 0.0, // top right
-    0.5, -0.5, 0.0, // bottom right
-    -0.5, -0.5, 0.0, // bottom left
-    -0.5, 0.5, 0.0, // top left
-];
-
-static INDICES: [GLint; 6] = [
-    0, 1, 3, // first triangle
-    1, 2, 3, // second triangle
-];
-
-// static VERTEX_DATA: [GLfloat; 18] = [// positions         // colors
-//     0.5, -0.5, 0.0,  1.0, 0.0, 0.0,   // bottom right
-//     -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,   // bottom let
-//     0.0,  0.5, 0.0,  0.0, 0.0, 1.0    // top
+// static VERTEX_DATA: [GLfloat; 12] = [
+//     0.5, 0.5, 0.0, // top right
+//     0.5, -0.5, 0.0, // bottom right
+//     -0.5, -0.5, 0.0, // bottom left
+//     -0.5, 0.5, 0.0, // top left
 // ];
+
+// static INDICES: [GLint; 6] = [
+//     0, 1, 3, // first triangle
+//     1, 2, 3, // second triangle
+// ];
+
+static VERTEX_DATA: [GLfloat; 18] = [
+    // positions         // colors
+    0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // bottom right
+    -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom let
+    0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // top
+];
 
 // Shader sources
 static VS_SRC: &'static str = "
 #version 330
 layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 color;
+
+out vec3 ourColor;
 
 void main() {
     gl_Position = vec4(position, 1.0);
+    ourColor = color;
 }";
 
 static FS_SRC: &'static str = "
 #version 330
 out vec4 out_color;
+in vec3 ourColor;
 
-uniform vec4 ourColor;
+uniform float scale;
 
 void main() {
-    out_color = ourColor;
+    vec3 tempColor = ourColor * scale;
+    out_color = vec4(tempColor, 1.0);
 }";
 
 fn compile_shader(src: &str, ty: GLenum) -> GLuint {
@@ -163,14 +170,14 @@ fn main() {
         );
 
         // Created an Element Buffer Object
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (INDICES.len() * mem::size_of::<GLint>()) as GLsizeiptr,
-            mem::transmute(&INDICES[0]),
-            gl::STATIC_DRAW,
-        );
+        // gl::GenBuffers(1, &mut ebo);
+        // gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        // gl::BufferData(
+        //     gl::ELEMENT_ARRAY_BUFFER,
+        //     (INDICES.len() * mem::size_of::<GLint>()) as GLsizeiptr,
+        //     mem::transmute(&INDICES[0]),
+        //     gl::STATIC_DRAW,
+        // );
 
         // Use shader program
         gl::UseProgram(program);
@@ -183,10 +190,19 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            mem::size_of::<GLfloat>() as GLint * 3,
+            mem::size_of::<GLfloat>() as GLint * 6,
             ptr::null(),
         );
         gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            mem::size_of::<GLfloat>() as GLint * 6,
+            (3 * mem::size_of::<GLfloat>()) as *const _,
+        );
+        gl::EnableVertexAttribArray(1);
     }
 
     event_loop.run(move |event, _, control_flow| {
@@ -220,16 +236,11 @@ fn main() {
                         .as_secs_f64();
                     let green_value = (now.sin() / 2.0) + 0.5;
                     let vertex_color_location =
-                        gl::GetUniformLocation(program, CString::new("ourColor").unwrap().as_ptr());
-                    gl::Uniform4f(vertex_color_location, 0.0, green_value as f32, 0.0, 1.0);
+                        gl::GetUniformLocation(program, CString::new("scale").unwrap().as_ptr());
+                    gl::Uniform1f(vertex_color_location, green_value as f32);
                     // Draw a triangle from the 3 vertices
                     // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-                    gl::DrawElements(
-                        gl::TRIANGLES,
-                        INDICES.len() as i32,
-                        gl::UNSIGNED_INT,
-                        ptr::null(),
-                    );
+                    gl::DrawArrays(gl::TRIANGLES, 0, 3);
                 }
                 gl_window.swap_buffers().unwrap();
             }
