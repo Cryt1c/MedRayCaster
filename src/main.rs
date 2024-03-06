@@ -5,15 +5,14 @@ use nalgebra::Vector2;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
 use nalgebra_glm::TVec3;
+use opengl_rs::shader;
 use std::f32::consts::PI;
 use std::ffi::CString;
 use std::mem;
 use std::ptr;
 use std::str;
-use three_d_asset::Error;
 use three_d_asset::Texture3D;
 use three_d_asset::TextureData;
-use three_d_asset::VoxelGrid;
 
 static VERTEX_DATA: [GLfloat; 32] = [
     // positions          // colors           // texture coords
@@ -24,71 +23,6 @@ static VERTEX_DATA: [GLfloat; 32] = [
 ];
 
 static INDICES: [GLuint; 6] = [0, 1, 3, 1, 2, 3];
-
-// Shader sources
-static VS_SRC: &'static str = "
-#version 330
-uniform mat4 ModelViewProjectionMatrix;
-
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-layout (location = 2) in vec2 aTexCoord;
-
-out vec3 ourColor;
-out vec3 TexCoord;
-
-void main() {
-	gl_Position = vec4(aPos, 1.0);
-	ourColor = aColor;
-	TexCoord = vec3(aTexCoord.x, aTexCoord.y, 0.5);
-}";
-
-static FS_SRC: &'static str = "
-#version 330
-uniform mat4 ViewMatrix;
-uniform mat3 NormalMatrix;
-
-uniform float focal_length;
-uniform float aspect_ratio;
-uniform vec2 viewport_size;
-uniform vec3 ray_origin;
-uniform vec3 top;
-uniform vec3 bottom;
-
-uniform vec3 background_colour;
-uniform vec3 material_colour;
-uniform vec3 light_position;
-
-uniform float step_length;
-uniform float threshold;
-
-uniform sampler3D volume;
-uniform sampler2D jitter;
-
-uniform float gamma;
-
-// Ray
-struct Ray {
-    vec3 origin;
-    vec3 direction;
-};
-
-// Axis-aligned bounding box
-struct AABB {
-    vec3 top;
-    vec3 bottom;
-};
-
-out vec4 out_color;
-
-in vec3 TexCoord;
-in vec3 ourColor;
-
-uniform sampler3D texture1;
-
-void main() {
-    out_color = texture(texture1, TexCoord);
-}";
 
 fn compile_shader(src: &str, ty: GLenum) -> GLuint {
     let shader;
@@ -177,9 +111,14 @@ fn main() {
     // Load the OpenGL function pointers
     gl::load_with(|symbol| gl_window.get_proc_address(symbol));
 
+    let shaders = shader::Shader::load_from_file(
+        "shaders/vertex_shader.glsl",
+        "shaders/fragment_shader.glsl",
+    );
+
     // Create GLSL shaders
-    let vs = compile_shader(VS_SRC, gl::VERTEX_SHADER);
-    let fs = compile_shader(FS_SRC, gl::FRAGMENT_SHADER);
+    let vs = compile_shader(shaders.get_vertex(), gl::VERTEX_SHADER);
+    let fs = compile_shader(shaders.get_fragment(), gl::FRAGMENT_SHADER);
     let program = link_program(vs, fs);
 
     let mut vao = 0;
@@ -323,6 +262,17 @@ fn main() {
                     // Use shader program
                     gl::UseProgram(program);
 
+                    let time = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs_f64();
+                    let mut modulated_time = (time * 0.5).sin() * 0.5 + 0.5;
+                    // let modulated_time = 0.5;
+                    println!("Time: {}", modulated_time);
+                    gl::Uniform1d(
+                        gl::GetUniformLocation(program, CString::new("time").unwrap().as_ptr()),
+                        modulated_time,
+                    );
                     // set_uniform_values(program, &gl_window.window());
                     // Draw a triangle from the 3 vertices
                     // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
