@@ -116,35 +116,15 @@ fn main() {
             gl::STATIC_DRAW,
         );
 
-        // gl::VertexAttribPointer(
-        //     0,
-        //     3,
-        //     gl::FLOAT,
-        //     gl::FALSE,
-        //     mem::size_of::<GLfloat>() as GLint * 3,
-        //     std::ptr::null(),
-        // );
-        // gl::EnableVertexAttribArray(0);
-        //
         gl::VertexAttribPointer(
-            1,
+            0,
             3,
             gl::FLOAT,
             gl::FALSE,
             mem::size_of::<GLfloat>() as GLint * 3,
-            (3 * mem::size_of::<GLfloat>()) as *const _,
+            std::ptr::null(),
         );
-        gl::EnableVertexAttribArray(1);
-
-        gl::VertexAttribPointer(
-            2,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            mem::size_of::<GLfloat>() as GLint * 8,
-            (6 * mem::size_of::<GLfloat>()) as *const _,
-        );
-        gl::EnableVertexAttribArray(2);
+        gl::EnableVertexAttribArray(0);
 
         println!("Width: {}", texture_3d.width);
         println!("Height: {}", texture_3d.height);
