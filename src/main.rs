@@ -250,11 +250,29 @@ fn set_uniform_values(program: GLuint, window: &window::Window) {
     let m_fov: f32 = 60.0;
     let fov_radians = m_fov.to_radians();
     let m_aspect_ratio = window.inner_size().width as f32 / window.inner_size().height as f32;
-    let m_model_view_projection_matrix =
+    let time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs_f64()
+        .sin()
+        .abs() as f32;
+    
+
+    let mut m_model_view_projection_matrix =
         nalgebra_glm::perspective(fov_radians, m_aspect_ratio, 0.1, 100.0);
+
+    m_model_view_projection_matrix = nalgebra_glm::translate(
+        &m_model_view_projection_matrix,
+        &Vector3::new(0.0, 0.0, 0.0),
+    );
     set_uniform_value(
         program,
         "m_model_view_projection_matrix",
         m_model_view_projection_matrix,
     );
+    let viewport_size = Vector2::new(
+        window.inner_size().width as f32,
+        window.inner_size().height as f32,
+    );
+    set_uniform_value(program, "viewport_size", viewport_size);
 }
