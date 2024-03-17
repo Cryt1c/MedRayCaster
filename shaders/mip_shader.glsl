@@ -8,7 +8,7 @@ out vec4 FragColor;
 void main()
 {
     vec3 camera = vec3(0.0, 0.0, -1.0);
-    float stepsize = 0.0001;
+    float stepsize = 0.005;
     vec3 volExtentMin = vec3(0.0, 0.0, 0.0);
     vec3 volExtentMax = vec3(1.0, 1.0, 1.0);
     vec4 value;
@@ -27,26 +27,15 @@ void main()
     direction = normalize(direction);
 
     // Loop for ray traversal
-    for (int i = 0; i < 300; i++) // Some large number
+    for (int i = 0; i < 400; i++) // Some large number
     {
-        // Data access to scalar value in 3D volume texture
+        // Sample the volume
         value = texture(SamplerDataVolume, position);
-        // if (value.r > 0.01)
-        // {
-        //     dst = vec4(0.0, 1.0, 0.0, 0.0);        
-        //     break;
-        // }
-        // else
-        // {
-        //     dst = vec4(1.0, 0.0, 0.0, 0.0);
-        //     break;
-        // }
-        // Apply transfer function
-        if (value.r < 0.01)
-            continue;
-        vec4 src = vec4(vec3(value.r, 0.0, 0.0), value.r);
-        // Front-to-back compositing
-        acc = (1.0 - acc.a) * src + acc;
+        
+        if (value.r > 0.1) {
+            acc = vec4(value.r, 0.0, 0.0, 1.0);
+            break;
+        }
         // Advance ray position along ray direction
         position += direction * stepsize;
         // Ray termination: Test if outside volume...
@@ -58,3 +47,4 @@ void main()
     }
     FragColor = acc;
 }
+
