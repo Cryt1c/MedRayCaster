@@ -9,7 +9,7 @@ void main()
 {
     vec3 camera = vec3(0.0, 0.0, -1.0);
     float stepsize = 0.005;
-    vec3 volExtentMin = vec3(0.0, 0.0, 0.0);
+    vec3 volExtentMin = vec3(-1.0, -1.0, -1.0);
     vec3 volExtentMax = vec3(1.0, 1.0, 1.0);
     vec4 value;
     float scalar;

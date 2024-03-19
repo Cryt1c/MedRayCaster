@@ -247,7 +247,7 @@ fn set_uniform_value<T: Uniform>(program: GLuint, name: &str, value: T) {
 }
 
 fn set_uniform_values(program: GLuint, window: &window::Window) {
-    let m_fov: f32 = 60.0;
+    let m_fov: f32 = 45.0;
     let fov_radians = m_fov.to_radians();
     let m_aspect_ratio = window.inner_size().width as f32 / window.inner_size().height as f32;
     let scale_factor: f64 = 0.1;
