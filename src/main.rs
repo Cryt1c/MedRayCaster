@@ -13,8 +13,8 @@ use three_d_asset::Texture3D;
 use three_d_asset::TextureData;
 
 static VERTEX_DATA: [GLfloat; 24] = [
-    -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, -1.0,
-    -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0,
+    -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5,
+    -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5,
 ];
 
 static INDICES: [GLuint; 36] = [
@@ -41,7 +41,7 @@ fn main() {
     gl::load_with(|symbol| gl_window.get_proc_address(symbol));
 
     let shaders =
-        shader::Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/mip_shader.glsl");
+        shader::Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/raycaster.glsl");
 
     // Create GLSL shaders
     let vs = shader::Shader::compile_shader(shaders.get_vertex(), gl::VERTEX_SHADER);
@@ -258,19 +258,22 @@ fn set_uniform_values(program: GLuint, window: &window::Window) {
         * scale_factor;
     let time_sin = time.sin().abs() as f32;
 
+    let model_matrix = nalgebra_glm::rotate(
+        &Matrix4::identity(),
+        time_sin * 2.0 * std::f32::consts::PI,
+        &Vector3::new(0.0, 1.0, 0.0),
+    );
+
     let mut m_model_view_projection_matrix =
-        nalgebra_glm::perspective(fov_radians, m_aspect_ratio, 0.0, 100.0);
+        nalgebra_glm::perspective(fov_radians, m_aspect_ratio, 0.1, 100.0);
+    
 
     m_model_view_projection_matrix = nalgebra_glm::translate(
         &m_model_view_projection_matrix,
-        &Vector3::new(0.0, 0.0, 0.9),
+        &Vector3::new(0.0, 0.0, -1.0),
     );
     println!("Time: {}", time_sin);
-    set_uniform_value(
-        program,
-        "m_model_view_projection_matrix",
-        m_model_view_projection_matrix,
-    );
+    set_uniform_value(program, "MVP", m_model_view_projection_matrix);
     let viewport_size = Vector2::new(
         window.inner_size().width as f32,
         window.inner_size().height as f32,
