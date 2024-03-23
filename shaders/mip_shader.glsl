@@ -1,50 +1,39 @@
-#version 330
+#version 330 core
 
-uniform sampler3D SamplerDataVolume;
-uniform vec2 viewport_size;
+layout(location = 0) out vec4 vFragColor;
 
-out vec4 FragColor;
+smooth in vec3 vUV;		
+
+uniform sampler3D	volume;
+uniform vec3		camPos;
+// uniform vec3		step_size;
+
+const int MAX_SAMPLES = 300;	
+const vec3 texMin = vec3(0);	
+const vec3 texMax = vec3(1);	
 
 void main()
-{
-    vec3 camera = vec3(0.0, 0.0, -1.0);
-    float stepsize = 0.005;
-    vec3 volExtentMin = vec3(-1.0, -1.0, -1.0);
-    vec3 volExtentMax = vec3(1.0, 1.0, 1.0);
-    vec4 value;
-    float scalar;
-    vec2 screen_xy = (gl_FragCoord.xy / viewport_size);
-    vec3 normalized_screen = vec3(screen_xy, gl_FragCoord.z / gl_FragCoord.w);
+{ 
+	float step_size = 0.01;
+	vec3 dataPos = vUV;
+	vec3 geomDir = normalize((vUV-vec3(0.5)) - camPos); 
+	vec3 dirStep = geomDir * step_size; 
+	bool stop = false; 
 
-    // Initialize accumulated color and opacity
-    vec4 acc = vec4(0.0, 0.0, 0.0, 0.0);
-
-    // Determine volume entry position
-    vec3 position = normalized_screen.xyz;
-
-    // Compute ray direction
-    vec3 direction = normalized_screen.xyz - camera;
-    direction = normalize(direction);
-
-    // Loop for ray traversal
-    for (int i = 0; i < 400; i++) // Some large number
-    {
+	for (int i = 0; i < MAX_SAMPLES; i++) {
         // Sample the volume
-        value = texture(SamplerDataVolume, position);
+        vec4 value = texture(volume, dataPos);
         
         if (value.r > 0.1) {
-            acc = vec4(value.r, 0.0, 0.0, 1.0);
+            vFragColor = vec4(value.r, value.r, value.r, 1.0);
             break;
         }
         // Advance ray position along ray direction
-        position += direction * stepsize;
+        dataPos = dataPos + dirStep;
         // Ray termination: Test if outside volume...
-        vec3 temp1 = sign(position - volExtentMin);
-        vec3 temp2 = sign(volExtentMax - position);
-        float inside = dot(temp1, temp2);
-        if (inside < 3.0)
-            break;
-    }
-    FragColor = acc;
-}
+	stop = dot(sign(dataPos-texMin),sign(texMax-dataPos)) < 3.0;
 
+	if (stop) 
+		break;
+	}
+}

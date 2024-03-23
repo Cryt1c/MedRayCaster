@@ -41,7 +41,7 @@ fn main() {
     gl::load_with(|symbol| gl_window.get_proc_address(symbol));
 
     let shaders =
-        shader::Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/raycaster.glsl");
+        shader::Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/mip_shader.glsl");
 
     // Create GLSL shaders
     let vs = shader::Shader::compile_shader(shaders.get_vertex(), gl::VERTEX_SHADER);
@@ -255,7 +255,6 @@ fn set_uniform_values(program: GLuint, window: &window::Window) {
         .unwrap()
         .as_secs_f64();
     let time_sin = time.sin() as f32;
-    println!("Time: {}", time_sin);
 
     let model_matrix = nalgebra_glm::rotate(&Matrix4::identity(), 0.0, &Vector3::new(0.0, 1.0, 0.0));
     let mut cam_pos = Vector3::new(time_sin, 0.0, -2.0);
