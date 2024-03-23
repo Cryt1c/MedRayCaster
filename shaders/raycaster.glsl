@@ -5,7 +5,7 @@ layout(location = 0) out vec4 vFragColor;
 smooth in vec3 vUV;		
 
 uniform sampler3D	volume;
-// uniform vec3		camPos;
+uniform vec3		camPos;
 // uniform vec3		step_size;
 
 const int MAX_SAMPLES = 300;	
@@ -14,8 +14,7 @@ const vec3 texMax = vec3(1);
 
 void main()
 { 
-	vec3 camPos = vec3(0.0, 0.0, -2.0);
-	float step_size = 0.1;
+	float step_size = 0.01;
 	vec3 dataPos = vUV;
 	vec3 geomDir = normalize((vUV-vec3(0.5)) - camPos); 
 	vec3 dirStep = geomDir * step_size; 
