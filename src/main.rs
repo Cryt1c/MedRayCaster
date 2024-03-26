@@ -241,6 +241,7 @@ fn main() {
             },
             _ => (),
         }
+        _window.request_redraw();
     });
 }
 trait Uniform {
