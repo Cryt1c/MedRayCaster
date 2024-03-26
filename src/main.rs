@@ -1,5 +1,4 @@
 use gl::types::*;
-use glutin::window;
 use nalgebra::Matrix3;
 use nalgebra::Matrix4;
 use nalgebra::Vector2;
@@ -11,6 +10,7 @@ use std::mem;
 use std::str;
 use three_d_asset::Texture3D;
 use three_d_asset::TextureData;
+use winit::window;
 
 static VERTEX_DATA: [GLfloat; 24] = [
     -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5,
@@ -28,21 +28,85 @@ static INDICES: [GLuint; 36] = [
 ];
 
 fn main() {
-    let event_loop = glutin::event_loop::EventLoop::new();
-    let window = glutin::window::WindowBuilder::new();
-    let gl_window = glutin::ContextBuilder::new()
-        .build_windowed(window, &event_loop)
-        .unwrap();
+    let (gl, gl_surface, gl_context, shader_version, _window, event_loop) = {
+        use glutin::{
+            config::{ConfigTemplateBuilder, GlConfig},
+            context::{ContextApi, ContextAttributesBuilder, NotCurrentGlContext},
+            display::{GetGlDisplay, GlDisplay},
+            surface::{GlSurface, SwapInterval},
+        };
+        use glutin_winit::{DisplayBuilder, GlWindow};
+        use raw_window_handle::HasRawWindowHandle;
+        use std::num::NonZeroU32;
 
-    // It is essential to make the context current before calling `gl::load_with`.
-    let gl_window = unsafe { gl_window.make_current() }.unwrap();
+        let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
+        let window_builder = winit::window::WindowBuilder::new()
+            .with_title("Hello triangle!")
+            .with_inner_size(winit::dpi::LogicalSize::new(1024.0, 768.0));
 
-    // Load the OpenGL function pointers
-    gl::load_with(|symbol| gl_window.get_proc_address(symbol));
+        let template = ConfigTemplateBuilder::new();
 
+        let display_builder = DisplayBuilder::new().with_window_builder(Some(window_builder));
+
+        let (window, gl_config) = display_builder
+            .build(&event_loop, template, |configs| {
+                configs
+                    .reduce(|accum, config| {
+                        if config.num_samples() > accum.num_samples() {
+                            config
+                        } else {
+                            accum
+                        }
+                    })
+                    .unwrap()
+            })
+            .unwrap();
+
+        let raw_window_handle = window
+            .as_ref()
+            .map(|window| window.raw_window_handle())
+            .unwrap();
+
+        let gl_display = gl_config.display();
+        let context_attributes = ContextAttributesBuilder::new()
+            .with_context_api(ContextApi::OpenGl(Some(glutin::context::Version {
+                major: 4,
+                minor: 3,
+            })))
+            .build(Some(raw_window_handle));
+        unsafe {
+            let not_current_gl_context = gl_display
+                .create_context(&gl_config, &context_attributes)
+                .unwrap();
+
+            let window = window.unwrap();
+
+            let attrs = window.build_surface_attributes(Default::default());
+            let gl_surface = gl_display
+                .create_window_surface(&gl_config, &attrs)
+                .unwrap();
+
+            let gl_context = not_current_gl_context.make_current(&gl_surface).unwrap();
+
+            let gl = glow::Context::from_loader_function_cstr(|s| gl_display.get_proc_address(s));
+            gl::load_with(|symbol| gl_display.get_proc_address(&CString::new(symbol).unwrap()));
+
+            gl_surface
+                .set_swap_interval(&gl_context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
+                .unwrap();
+
+            (
+                gl,
+                gl_surface,
+                gl_context,
+                "#version 410",
+                window,
+                event_loop,
+            )
+        }
+    };
     let shaders =
         shader::Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/mip_shader.glsl");
-
     // Create GLSL shaders
     let vs = shader::Shader::compile_shader(shaders.get_vertex(), gl::VERTEX_SHADER);
     let fs = shader::Shader::compile_shader(shaders.get_fragment(), gl::FRAGMENT_SHADER);
@@ -130,12 +194,11 @@ fn main() {
         gl::GenerateMipmap(gl::TEXTURE_3D);
     }
 
-    event_loop.run(move |event, _, control_flow| {
-        use glutin::event::{Event, WindowEvent};
-        use glutin::event_loop::ControlFlow;
-        *control_flow = ControlFlow::Poll;
+    let _ = event_loop.run(move |event, elwt| {
+        use glutin::prelude::GlSurface;
+        use winit::event::{Event, WindowEvent};
         match event {
-            Event::LoopDestroyed => return,
+            Event::LoopExiting => return,
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::CloseRequested => {
                     // Cleanup
@@ -147,38 +210,37 @@ fn main() {
                         gl::DeleteBuffers(1, &vbo);
                         gl::DeleteBuffers(1, &ebo);
                     }
-                    *control_flow = ControlFlow::Exit
+                    elwt.exit();
+                }
+                WindowEvent::RedrawRequested => {
+                    unsafe {
+                        // Clear the screen to black
+                        gl::ClearColor(1.0, 0.0, 0.0, 1.0);
+                        gl::Clear(gl::COLOR_BUFFER_BIT);
+                        gl::BindTexture(gl::TEXTURE_3D, texture);
+
+                        // Use shader program
+                        gl::UseProgram(program);
+
+                        set_uniform_values(program, &_window);
+                        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+                        gl::BindVertexArray(vao);
+                        gl::DrawElements(
+                            gl::TRIANGLES,
+                            INDICES.len().try_into().unwrap(),
+                            gl::UNSIGNED_INT,
+                            std::ptr::null(),
+                        );
+                        if gl::GetError() != gl::NO_ERROR {
+                            println!("Error: {}", gl::GetError());
+                        }
+                    }
+                    gl_surface.swap_buffers(&gl_context).unwrap();
                 }
                 _ => (),
             },
-            Event::RedrawRequested(_) => {
-                unsafe {
-                    // Clear the screen to black
-                    gl::ClearColor(1.0, 0.0, 0.0, 1.0);
-                    gl::Clear(gl::COLOR_BUFFER_BIT);
-                    gl::BindTexture(gl::TEXTURE_3D, texture);
-
-                    // Use shader program
-                    gl::UseProgram(program);
-
-                    set_uniform_values(program, &gl_window.window());
-                    // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-                    gl::BindVertexArray(vao);
-                    gl::DrawElements(
-                        gl::TRIANGLES,
-                        INDICES.len().try_into().unwrap(),
-                        gl::UNSIGNED_INT,
-                        std::ptr::null(),
-                    );
-                    if gl::GetError() != gl::NO_ERROR {
-                        println!("Error: {}", gl::GetError());
-                    }
-                }
-                gl_window.swap_buffers().unwrap();
-            }
             _ => (),
         }
-        gl_window.window().request_redraw();
     });
 }
 trait Uniform {
@@ -256,7 +318,8 @@ fn set_uniform_values(program: GLuint, window: &window::Window) {
         .as_secs_f64();
     let time_sin = time.sin() as f32;
 
-    let model_matrix = nalgebra_glm::rotate(&Matrix4::identity(), 0.0, &Vector3::new(0.0, 1.0, 0.0));
+    let model_matrix =
+        nalgebra_glm::rotate(&Matrix4::identity(), 0.0, &Vector3::new(0.0, 1.0, 0.0));
     let mut cam_pos = Vector3::new(time_sin, 0.0, -2.0);
     let view_matrix = nalgebra_glm::translate(&Matrix4::identity(), &cam_pos);
 

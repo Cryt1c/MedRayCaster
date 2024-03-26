@@ -6,9 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+egui = "0.27.0"
 gl = "0.14.0"
-glutin = "0.24"
+glow = "0.13.1"
+glutin = "0.31"
+glutin-winit = "0.4.2"
 image = "0.24.9"
 nalgebra = "0.32.4"
 nalgebra-glm = "0.18.0"
+raw-window-handle = "0.5.0"
 three-d-asset = { version = "0.7.0", features = ["vol"] }
+winit = "0.29.15"
