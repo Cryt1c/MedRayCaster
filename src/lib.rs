@@ -1,25 +1,35 @@
 pub mod shader {
-    use gl::types::{GLchar, GLenum, GLint, GLuint};
-    use std::ffi::CString;
-    use std::ptr;
+    use glow::HasContext;
+    use nalgebra::Matrix3;
+    use nalgebra::Matrix4;
+    use nalgebra::Vector2;
+    use nalgebra::Vector3;
+    use nalgebra::Vector4;
     use std::str;
 
     pub struct Shader {
         vertex: String,
         fragment: String,
+        gl_glow: glow::Context,
     }
 
     impl Shader {
-        pub fn new(vertex: &str, fragment: &str) -> Shader {
+        pub fn new(vertex: &str, fragment: &str, gl_glow: glow::Context) -> Shader {
             Shader {
                 vertex: vertex.to_string(),
                 fragment: fragment.to_string(),
+                gl_glow,
             }
         }
-        pub fn load_from_file(vertex_path: &str, fragment_path: &str) -> Shader {
+        pub fn load_from_file(
+            vertex_path: &str,
+            fragment_path: &str,
+            gl_glow: glow::Context,
+        ) -> Shader {
             Shader {
                 vertex: std::fs::read_to_string(vertex_path).unwrap(),
                 fragment: std::fs::read_to_string(fragment_path).unwrap(),
+                gl_glow,
             }
         }
         pub fn get_vertex(&self) -> &str {
@@ -28,72 +38,127 @@ pub mod shader {
         pub fn get_fragment(&self) -> &str {
             &self.fragment
         }
-
-        pub fn compile_shader(src: &str, ty: GLenum) -> GLuint {
-            let shader;
+        pub fn delete_shader(&self, shader: glow::NativeShader) {
             unsafe {
-                shader = gl::CreateShader(ty);
-                // Attempt to compile the shader
-                let c_str = CString::new(src.as_bytes()).unwrap();
-                gl::ShaderSource(shader, 1, &c_str.as_ptr(), ptr::null());
-                gl::CompileShader(shader);
-
-                // Get the compile status
-                let mut status = gl::FALSE as GLint;
-                gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
-
-                // Fail on error
-                if status != (gl::TRUE as GLint) {
-                    let mut len = 0;
-                    gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-                    let mut buf = Vec::with_capacity(len as usize);
-                    buf.set_len((len as usize) - 1); // subtract 1 to skip the trailing null character
-                    gl::GetShaderInfoLog(
-                        shader,
-                        len,
-                        ptr::null_mut(),
-                        buf.as_mut_ptr() as *mut GLchar,
-                    );
-                    panic!(
-                        "{}",
-                        str::from_utf8(&buf)
-                            .ok()
-                            .expect("ShaderInfoLog not valid utf8")
-                    );
-                }
+                self.gl_glow.delete_shader(shader);
             }
-            shader
         }
-        pub fn link_program(vs: GLuint, fs: GLuint) -> GLuint {
+        pub fn delete_program(&self, program: glow::NativeProgram) {
             unsafe {
-                let program = gl::CreateProgram();
-                gl::AttachShader(program, vs);
-                gl::AttachShader(program, fs);
-                gl::LinkProgram(program);
-                // Get the link status
-                let mut status = gl::FALSE as GLint;
-                gl::GetProgramiv(program, gl::LINK_STATUS, &mut status);
+                self.gl_glow.delete_program(program);
+            }
+        }
 
-                // Fail on error
-                if status != (gl::TRUE as GLint) {
-                    let mut len: GLint = 0;
-                    gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
-                    let mut buf = Vec::with_capacity(len as usize);
-                    buf.set_len((len as usize) - 1); // subtract 1 to skip the trailing null character
-                    gl::GetProgramInfoLog(
-                        program,
-                        len,
-                        ptr::null_mut(),
-                        buf.as_mut_ptr() as *mut GLchar,
-                    );
-                    panic!(
-                        "{}",
-                        str::from_utf8(&buf)
-                            .ok()
-                            .expect("ProgramInfoLog not valid utf8")
-                    );
+        pub fn compile_shader(&self, src: &str, shader_type: u32) -> glow::NativeShader {
+            unsafe {
+                let glow_shader_type = match shader_type {
+                    gl::VERTEX_SHADER => glow::VERTEX_SHADER,
+                    gl::FRAGMENT_SHADER => glow::FRAGMENT_SHADER,
+                    _ => panic!("Invalid shader type"),
+                };
+                let shader = self.gl_glow.create_shader(glow_shader_type).unwrap();
+                self.gl_glow.shader_source(shader, src);
+                self.gl_glow.compile_shader(shader);
+                let status = self.gl_glow.get_shader_compile_status(shader);
+                if !status {
+                    let info_log = self.gl_glow.get_shader_info_log(shader);
+                    panic!("{}", info_log);
+                }
+                shader
+            }
+        }
+        pub fn link_program(
+            &self,
+            vs: glow::NativeShader,
+            fs: glow::NativeShader,
+        ) -> glow::NativeProgram {
+            unsafe {
+                let program = self
+                    .gl_glow
+                    .create_program()
+                    .expect("Cannot create program");
+                self.gl_glow.attach_shader(program, vs);
+                self.gl_glow.attach_shader(program, fs);
+                self.gl_glow.link_program(program);
+
+                let status = self.gl_glow.get_program_link_status(program);
+                if !status {
+                    let info_log = self.gl_glow.get_program_info_log(program);
+                    panic!("{}", info_log);
                 }
                 program
+            }
+        }
+
+        pub fn use_program(&self, program: glow::NativeProgram) {
+            unsafe {
+                self.gl_glow.use_program(Some(program));
+            }
+        }
+
+        pub fn set_uniform_value<T: Uniform>(
+            &self,
+            program: glow::NativeProgram,
+            name: &str,
+            value: T,
+        ) {
+            unsafe {
+                let location = self.gl_glow.get_uniform_location(program, name);
+                value.set_uniform(&self.gl_glow, location);
+            }
+        }
+    }
+    pub trait Uniform {
+        fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>);
+    }
+
+    impl Uniform for f32 {
+        fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+            unsafe {
+                gl_glow.uniform_1_f32(location.as_ref(), *self);
+            }
+        }
+    }
+
+    impl Uniform for i32 {
+        fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+            unsafe {
+                gl_glow.uniform_1_i32(location.as_ref(), *self);
+            }
+        }
+    }
+    impl Uniform for Matrix4<f32> {
+        fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+            unsafe {
+                gl_glow.uniform_matrix_4_f32_slice(location.as_ref(), false, self.as_slice());
+            }
+        }
+    }
+    impl Uniform for Matrix3<f32> {
+        fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+            unsafe {
+                gl_glow.uniform_matrix_3_f32_slice(location.as_ref(), false, self.as_slice());
+            }
+        }
+    }
+    impl Uniform for Vector2<f32> {
+        fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+            unsafe {
+                gl_glow.uniform_2_f32(location.as_ref(), self.x, self.y);
+            }
+        }
+    }
+    impl Uniform for Vector3<f32> {
+        fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+            unsafe {
+                gl_glow.uniform_3_f32(location.as_ref(), self.x, self.y, self.z);
+            }
+        }
+    }
+    impl Uniform for Vector4<f32> {
+        fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+            unsafe {
+                gl_glow.uniform_4_f32(location.as_ref(), self.x, self.y, self.z, self.w);
             }
         }
     }
