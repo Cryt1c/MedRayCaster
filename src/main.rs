@@ -1,20 +1,19 @@
-use gl::types::*;
+use glow::HasContext;
 use glow::NativeProgram;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
 use opengl_rs::shader;
-use std::ffi::CString;
 use std::mem;
 use three_d_asset::Texture3D;
 use three_d_asset::TextureData;
 use winit::window;
 
-static VERTEX_DATA: [GLfloat; 24] = [
+static VERTEX_DATA: [f32; 24] = [
     -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5,
     -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5,
 ];
 
-static INDICES: [GLuint; 36] = [
+static INDICES: [u32; 36] = [
     // front
     0, 1, 2, 0, 2, 3, // right
     1, 5, 6, 1, 6, 2, // back
@@ -61,10 +60,8 @@ fn main() {
                 .make_current(&gl_surface)
                 .unwrap();
 
-
             let gl_glow: glow::Context =
                 glow::Context::from_loader_function_cstr(|s| gl_display.get_proc_address(s));
-            gl::load_with(|symbol| gl_display.get_proc_address(&CString::new(symbol).unwrap()));
 
             gl_surface
                 .set_swap_interval(&gl_context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
@@ -73,21 +70,15 @@ fn main() {
             (gl_glow, gl_surface, gl_context, window, event_loop)
         }
     };
-    let shaders = shader::Shader::load_from_file(
-        "shaders/vertex_shader.glsl",
-        "shaders/raycaster.glsl",
-        gl_glow,
-    );
+
+    let shaders =
+        shader::Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/raycaster.glsl");
     // Create GLSL shaders
-    let vs = shaders.compile_shader(shaders.get_vertex(), gl::VERTEX_SHADER);
-    let fs = shaders.compile_shader(shaders.get_fragment(), gl::FRAGMENT_SHADER);
-    let program = shaders.link_program(vs, fs);
+    let vs = shaders.compile_shader(&gl_glow, shaders.get_vertex(), glow::VERTEX_SHADER);
+    let fs = shaders.compile_shader(&gl_glow, shaders.get_fragment(), glow::FRAGMENT_SHADER);
+    let program = shaders.link_program(&gl_glow, vs, fs);
 
-    let mut vao = 0;
-    let mut vbo = 0;
-    let mut ebo = 0;
-    let mut texture = 0;
-
+    let texture = unsafe { gl_glow.create_texture().expect("Cannot create texture") };
     let texture_size = 4456448;
     let mut texture_data: [u8; 4456448] = [255; 4456448];
 
@@ -101,68 +92,79 @@ fn main() {
             texture_data[i] = value;
         }
     }
-    println!("Max: {}", texture_data.iter().max().unwrap());
-    println!("Min: {}", texture_data.iter().min().unwrap());
 
+    let vao;
+    let vbo;
+    let ebo;
     unsafe {
         // Create Vertex Array Object
+        vao = gl_glow.create_vertex_array().expect("Cannot create VAO");
+        gl_glow.bind_vertex_array(Some(vao));
 
-        gl::GenVertexArrays(1, &mut vao);
-        gl::BindVertexArray(vao);
-
-        gl::GenBuffers(1, &mut vbo);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            (VERTEX_DATA.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-            mem::transmute(&VERTEX_DATA[0]),
-            gl::STATIC_DRAW,
+        vbo = gl_glow.create_buffer().expect("Cannot create VBO");
+        gl_glow.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+        gl_glow.buffer_data_u8_slice(
+            glow::ARRAY_BUFFER,
+            bytemuck::cast_slice(&VERTEX_DATA),
+            glow::STATIC_DRAW,
         );
 
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (INDICES.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-            mem::transmute(&INDICES[0]),
-            gl::STATIC_DRAW,
+        ebo = gl_glow.create_buffer().expect("Cannot create EBO");
+        gl_glow.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+        gl_glow.buffer_data_u8_slice(
+            glow::ELEMENT_ARRAY_BUFFER,
+            bytemuck::cast_slice(&INDICES),
+            glow::STATIC_DRAW,
         );
-
-        gl::VertexAttribPointer(
+        gl_glow.vertex_attrib_pointer_f32(
             0,
             3,
-            gl::FLOAT,
-            gl::FALSE,
-            mem::size_of::<GLfloat>() as GLint * 3,
-            std::ptr::null(),
-        );
-        gl::EnableVertexAttribArray(0);
-
-        println!("Width: {}", texture_3d.width);
-        println!("Height: {}", texture_3d.height);
-        println!("Depth: {}", texture_3d.depth);
-
-        gl::GenTextures(1, &mut texture);
-        gl::BindTexture(gl::TEXTURE_3D, texture);
-        gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
-
-        gl::TexImage3D(
-            gl::TEXTURE_3D,
+            glow::FLOAT,
+            false,
+            3 * mem::size_of::<f32>() as i32,
             0,
-            gl::RGB as i32,
+        );
+        gl_glow.enable_vertex_attrib_array(0);
+
+        gl_glow.bind_texture(glow::TEXTURE_3D, Some(texture));
+        gl_glow.tex_parameter_i32(
+            glow::TEXTURE_3D,
+            glow::TEXTURE_MIN_FILTER,
+            glow::LINEAR as i32,
+        );
+        gl_glow.tex_parameter_i32(
+            glow::TEXTURE_3D,
+            glow::TEXTURE_MAG_FILTER,
+            glow::LINEAR as i32,
+        );
+        gl_glow.tex_parameter_i32(
+            glow::TEXTURE_3D,
+            glow::TEXTURE_WRAP_S,
+            glow::CLAMP_TO_EDGE as i32,
+        );
+        gl_glow.tex_parameter_i32(
+            glow::TEXTURE_3D,
+            glow::TEXTURE_WRAP_T,
+            glow::CLAMP_TO_EDGE as i32,
+        );
+        gl_glow.tex_parameter_i32(
+            glow::TEXTURE_3D,
+            glow::TEXTURE_WRAP_R,
+            glow::CLAMP_TO_EDGE as i32,
+        );
+        gl_glow.tex_image_3d(
+            glow::TEXTURE_3D,
+            0,
+            glow::RGB as i32,
             texture_3d.width as i32,
             texture_3d.height as i32,
             texture_3d.depth as i32,
             0,
-            gl::RED,
-            gl::UNSIGNED_BYTE,
-            texture_data.as_ptr() as *const _,
+            glow::RED,
+            glow::UNSIGNED_BYTE,
+            Some(bytemuck::cast_slice(&texture_data)),
         );
-        gl::GenerateMipmap(gl::TEXTURE_3D);
+        gl_glow.generate_mipmap(glow::TEXTURE_3D);
     }
 
     let _ = event_loop.run(move |event, elwt| {
@@ -174,36 +176,35 @@ fn main() {
                 WindowEvent::CloseRequested => {
                     // Cleanup
                     unsafe {
-                        shaders.delete_program(program);
-                        shaders.delete_shader(fs);
-                        shaders.delete_shader(vs);
-                        gl::DeleteVertexArrays(1, &vao);
-                        gl::DeleteBuffers(1, &vbo);
-                        gl::DeleteBuffers(1, &ebo);
+                        shaders.delete_program(&gl_glow, program);
+                        shaders.delete_shader(&gl_glow, fs);
+                        shaders.delete_shader(&gl_glow, vs);
+                        gl_glow.delete_vertex_array(vao);
+                        gl_glow.delete_buffer(vbo);
+                        gl_glow.delete_buffer(ebo);
                     }
                     elwt.exit();
                 }
                 WindowEvent::RedrawRequested => {
                     unsafe {
                         // Clear the screen to black
-                        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-                        gl::Clear(gl::COLOR_BUFFER_BIT);
-                        gl::BindTexture(gl::TEXTURE_3D, texture);
+                        gl_glow.clear_color(0.0, 0.0, 0.0, 1.0);
+                        gl_glow.clear(glow::COLOR_BUFFER_BIT);
+                        gl_glow.bind_texture(glow::TEXTURE_3D, Some(texture));
 
                         // Use shader program
-                        shaders.use_program(program);
+                        shaders.use_program(&gl_glow, program);
 
-                        set_uniform_values(program, &gl_window, &shaders);
-                        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-                        gl::BindVertexArray(vao);
-                        gl::DrawElements(
-                            gl::TRIANGLES,
-                            INDICES.len().try_into().unwrap(),
-                            gl::UNSIGNED_INT,
-                            std::ptr::null(),
+                        set_uniform_values(&gl_glow, program, &gl_window, &shaders);
+                        gl_glow.bind_vertex_array(Some(vao));
+                        gl_glow.draw_elements(
+                            glow::TRIANGLES,
+                            INDICES.len() as i32,
+                            glow::UNSIGNED_INT,
+                            0,
                         );
-                        if gl::GetError() != gl::NO_ERROR {
-                            println!("Error: {}", gl::GetError());
+                        if gl_glow.get_error() != glow::NO_ERROR {
+                            println!("Error: {}", gl_glow.get_error());
                         }
                     }
                     gl_surface.swap_buffers(&gl_context).unwrap();
@@ -216,7 +217,12 @@ fn main() {
     });
 }
 
-fn set_uniform_values(program: NativeProgram, window: &window::Window, shaders: &shader::Shader) {
+fn set_uniform_values(
+    gl_glow: &glow::Context,
+    program: NativeProgram,
+    window: &window::Window,
+    shaders: &shader::Shader,
+) {
     let m_fov: f32 = 45.0;
     let fov_radians = m_fov.to_radians();
     let m_aspect_ratio = window.inner_size().width as f32 / window.inner_size().height as f32;
@@ -233,8 +239,8 @@ fn set_uniform_values(program: NativeProgram, window: &window::Window, shaders: 
 
     let projection_matrix = nalgebra_glm::perspective(fov_radians, m_aspect_ratio, 0.1, 100.0);
 
-    shaders.set_uniform_value(program, "camPos", cam_pos);
-    shaders.set_uniform_value(program, "M", model_matrix);
-    shaders.set_uniform_value(program, "V", view_matrix);
-    shaders.set_uniform_value(program, "P", projection_matrix);
+    shaders.set_uniform_value(&gl_glow, program, "camPos", cam_pos);
+    shaders.set_uniform_value(&gl_glow, program, "M", model_matrix);
+    shaders.set_uniform_value(&gl_glow, program, "V", view_matrix);
+    shaders.set_uniform_value(&gl_glow, program, "P", projection_matrix);
 }
