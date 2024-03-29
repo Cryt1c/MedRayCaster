@@ -28,62 +28,39 @@ fn main() {
     let (gl_glow, gl_surface, gl_context, gl_window, event_loop) = {
         unsafe {
             use glutin::{
-                config::{ConfigTemplateBuilder, GlConfig},
-                context::{ContextApi, ContextAttributesBuilder, NotCurrentGlContext},
+                config::ConfigTemplateBuilder,
+                context::{ContextAttributesBuilder, NotCurrentGlContext},
                 display::{GetGlDisplay, GlDisplay},
                 surface::{GlSurface, SwapInterval},
             };
             use glutin_winit::{DisplayBuilder, GlWindow};
-            use raw_window_handle::HasRawWindowHandle;
             use std::num::NonZeroU32;
 
             let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
             let window_builder = winit::window::WindowBuilder::new()
-                .with_title("Hello triangle!")
+                .with_title("Raycaster")
                 .with_inner_size(winit::dpi::LogicalSize::new(1024.0, 768.0));
 
             let template = ConfigTemplateBuilder::new();
-
             let display_builder = DisplayBuilder::new().with_window_builder(Some(window_builder));
-
-            let (window, gl_config) = display_builder
-                .build(&event_loop, template, |configs| {
-                    configs
-                        .reduce(|accum, config| {
-                            if config.num_samples() > accum.num_samples() {
-                                config
-                            } else {
-                                accum
-                            }
-                        })
-                        .unwrap()
-                })
+            let (maybe_window, gl_config) = display_builder
+                .build(&event_loop, template, |mut configs| configs.nth(0).unwrap())
                 .unwrap();
-
-            let raw_window_handle = window
-                .as_ref()
-                .map(|window| window.raw_window_handle())
-                .unwrap();
-
-            let gl_display = gl_config.display();
-            let context_attributes = ContextAttributesBuilder::new()
-                .with_context_api(ContextApi::OpenGl(Some(glutin::context::Version {
-                    major: 4,
-                    minor: 3,
-                })))
-                .build(Some(raw_window_handle));
-            let not_current_gl_context = gl_display
-                .create_context(&gl_config, &context_attributes)
-                .unwrap();
-
-            let window = window.unwrap();
-
+            let context_attributes = ContextAttributesBuilder::new().build(None);
+            let window = maybe_window.unwrap();
             let attrs = window.build_surface_attributes(Default::default());
-            let gl_surface = gl_display
+            let gl_surface = gl_config
+                .display()
                 .create_window_surface(&gl_config, &attrs)
                 .unwrap();
 
-            let gl_context = not_current_gl_context.make_current(&gl_surface).unwrap();
+            let gl_display = gl_config.display();
+            let gl_context = gl_display
+                .create_context(&gl_config, &context_attributes)
+                .unwrap()
+                .make_current(&gl_surface)
+                .unwrap();
+
 
             let gl_glow: glow::Context =
                 glow::Context::from_loader_function_cstr(|s| gl_display.get_proc_address(s));
@@ -98,7 +75,7 @@ fn main() {
     };
     let shaders = shader::Shader::load_from_file(
         "shaders/vertex_shader.glsl",
-        "shaders/mip_shader.glsl",
+        "shaders/raycaster.glsl",
         gl_glow,
     );
     // Create GLSL shaders
@@ -209,7 +186,7 @@ fn main() {
                 WindowEvent::RedrawRequested => {
                     unsafe {
                         // Clear the screen to black
-                        gl::ClearColor(1.0, 0.0, 0.0, 1.0);
+                        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
                         gl::Clear(gl::COLOR_BUFFER_BIT);
                         gl::BindTexture(gl::TEXTURE_3D, texture);
 
@@ -251,7 +228,7 @@ fn set_uniform_values(program: NativeProgram, window: &window::Window, shaders: 
 
     let model_matrix =
         nalgebra_glm::rotate(&Matrix4::identity(), 0.0, &Vector3::new(0.0, 1.0, 0.0));
-    let cam_pos = Vector3::new(time_sin, 0.0, -2.0);
+    let cam_pos = Vector3::new(time_sin * 0.5, 0.0, -2.5);
     let view_matrix = nalgebra_glm::translate(&Matrix4::identity(), &cam_pos);
 
     let projection_matrix = nalgebra_glm::perspective(fov_radians, m_aspect_ratio, 0.1, 100.0);
