@@ -1,11 +1,15 @@
+mod renderer;
+
 use glow::HasContext;
 use glow::NativeProgram;
+use glutin::surface::GlSurface;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
 use opengl_rs::shader;
 use std::mem;
 use three_d_asset::Texture3D;
 use three_d_asset::TextureData;
+use winit::event::{Event, WindowEvent};
 use winit::window;
 
 static VERTEX_DATA: [f32; 24] = [
@@ -24,52 +28,12 @@ static INDICES: [u32; 36] = [
 ];
 
 fn main() {
-    let (gl_glow, gl_surface, gl_context, gl_window, event_loop) = {
-        unsafe {
-            use glutin::{
-                config::ConfigTemplateBuilder,
-                context::{ContextAttributesBuilder, NotCurrentGlContext},
-                display::{GetGlDisplay, GlDisplay},
-                surface::{GlSurface, SwapInterval},
-            };
-            use glutin_winit::{DisplayBuilder, GlWindow};
-            use std::num::NonZeroU32;
-
-            let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
-            let window_builder = winit::window::WindowBuilder::new()
-                .with_title("Raycaster")
-                .with_inner_size(winit::dpi::LogicalSize::new(1024.0, 768.0));
-
-            let template = ConfigTemplateBuilder::new();
-            let display_builder = DisplayBuilder::new().with_window_builder(Some(window_builder));
-            let (maybe_window, gl_config) = display_builder
-                .build(&event_loop, template, |mut configs| configs.nth(0).unwrap())
-                .unwrap();
-            let context_attributes = ContextAttributesBuilder::new().build(None);
-            let window = maybe_window.unwrap();
-            let attrs = window.build_surface_attributes(Default::default());
-            let gl_surface = gl_config
-                .display()
-                .create_window_surface(&gl_config, &attrs)
-                .unwrap();
-
-            let gl_display = gl_config.display();
-            let gl_context = gl_display
-                .create_context(&gl_config, &context_attributes)
-                .unwrap()
-                .make_current(&gl_surface)
-                .unwrap();
-
-            let gl_glow: glow::Context =
-                glow::Context::from_loader_function_cstr(|s| gl_display.get_proc_address(s));
-
-            gl_surface
-                .set_swap_interval(&gl_context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
-                .unwrap();
-
-            (gl_glow, gl_surface, gl_context, window, event_loop)
-        }
-    };
+    let renderer = renderer::Renderer::new();
+    let event_loop = renderer.event_loop;
+    let gl_window = renderer.gl_window;
+    let gl_surface = renderer.gl_surface;
+    let gl_glow = renderer.gl_glow;
+    let gl_possibly_current_context = renderer.gl_possibly_current_context;
 
     let shaders =
         shader::Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/raycaster.glsl");
@@ -168,8 +132,6 @@ fn main() {
     }
 
     let _ = event_loop.run(move |event, elwt| {
-        use glutin::prelude::GlSurface;
-        use winit::event::{Event, WindowEvent};
         match event {
             Event::LoopExiting => return,
             Event::WindowEvent { event, .. } => match event {
@@ -207,7 +169,9 @@ fn main() {
                             println!("Error: {}", gl_glow.get_error());
                         }
                     }
-                    gl_surface.swap_buffers(&gl_context).unwrap();
+                    gl_surface
+                        .swap_buffers(&gl_possibly_current_context)
+                        .unwrap();
                 }
                 _ => (),
             },
