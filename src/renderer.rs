@@ -1,22 +1,11 @@
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
-use glutin::{
-    config::ConfigTemplateBuilder,
-    context::{ContextAttributesBuilder, NotCurrentGlContext},
-    display::{GetGlDisplay, GlDisplay},
-    surface::{GlSurface, SwapInterval, WindowSurface},
-};
-use glutin_winit::{DisplayBuilder, GlWindow};
-use std::mem;
-use std::num::NonZeroU32;
+use opengl_rs::shader::Shader;
+use std::{mem, sync::Arc};
 
 use crate::volume::Volume;
 
 pub struct Renderer {
-    pub gl_glow: glow::Context,
-    pub gl_surface: glutin::surface::Surface<WindowSurface>,
-    pub gl_window: winit::window::Window,
-    pub gl_possibly_current_context: glutin::context::PossiblyCurrentContext,
-    pub event_loop: winit::event_loop::EventLoop<()>,
+    pub gl_glow: Arc<glow::Context>,
     pub vbo: Option<NativeBuffer>,
     pub vao: Option<NativeVertexArray>,
     pub ebo: Option<NativeBuffer>,
@@ -24,50 +13,17 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new() -> Self {
-        let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
-        let window_builder = winit::window::WindowBuilder::new()
-            .with_title("Raycaster")
-            .with_inner_size(winit::dpi::LogicalSize::new(1024.0, 768.0));
-        let template = ConfigTemplateBuilder::new();
-        let display_builder = DisplayBuilder::new().with_window_builder(Some(window_builder));
-        let (maybe_window, gl_config) = display_builder
-            .build(&event_loop, template, |mut configs| configs.nth(0).unwrap())
-            .unwrap();
-        let context_attributes = ContextAttributesBuilder::new().build(None);
-        let gl_window = maybe_window.unwrap();
-        let attrs = gl_window.build_surface_attributes(Default::default());
-
-        unsafe {
-            let gl_surface = gl_config
-                .display()
-                .create_window_surface(&gl_config, &attrs)
-                .unwrap();
-            let gl_display = gl_config.display();
-            let gl_possibly_current_context = gl_display
-                .create_context(&gl_config, &context_attributes)
-                .unwrap()
-                .make_current(&gl_surface)
-                .unwrap();
-            let gl_glow =
-                glow::Context::from_loader_function_cstr(|s| gl_display.get_proc_address(s));
-            gl_surface
-                .set_swap_interval(
-                    &gl_possibly_current_context,
-                    SwapInterval::Wait(NonZeroU32::new(1).unwrap()),
-                )
-                .unwrap();
-            Renderer {
-                gl_glow,
-                gl_surface,
-                gl_window,
-                gl_possibly_current_context,
-                event_loop,
-                vao: None,
-                vbo: None,
-                ebo: None,
-                texture: None,
-            }
+    pub fn new(creation_context: &eframe::CreationContext<'_>) -> Self {
+        let gl = creation_context
+            .gl
+            .as_ref()
+            .expect("You need to run eframe with the glow backend");
+        Renderer {
+            gl_glow: gl.clone(),
+            vao: None,
+            vbo: None,
+            ebo: None,
+            texture: None,
         }
     }
     pub fn create_vao(&mut self) {
@@ -153,7 +109,88 @@ impl Renderer {
             self.gl_glow.generate_mipmap(glow::TEXTURE_3D);
         }
     }
-    fn render(&self) {
-        println!("Rendering...");
+}
+
+impl eframe::App for Renderer {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let volume = Volume::new();
+
+        let screen_rect = ctx.available_rect();
+
+        self.create_vao();
+        self.create_vbo(&volume);
+        self.create_ebo(&volume);
+        self.create_texture(&volume);
+
+        let shaders =
+            Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/raycaster.glsl");
+        // Create GLSL shaders
+        let vs = shaders.compile_shader(&self.gl_glow, shaders.get_vertex(), glow::VERTEX_SHADER);
+        let fs =
+            shaders.compile_shader(&self.gl_glow, shaders.get_fragment(), glow::FRAGMENT_SHADER);
+        let program = shaders.link_program(&self.gl_glow, vs, fs);
+
+        unsafe {
+            // Clear the screen to black
+            self.gl_glow.clear_color(0.0, 0.0, 0.0, 1.0);
+            self.gl_glow.clear(glow::COLOR_BUFFER_BIT);
+            self.gl_glow.bind_texture(glow::TEXTURE_3D, self.texture);
+
+            // Use shader program
+            shaders.use_program(&self.gl_glow, program);
+
+            shaders.set_uniform_values(&self.gl_glow, program, screen_rect);
+
+            self.gl_glow.bind_vertex_array(self.vao);
+            self.gl_glow.draw_elements(
+                glow::TRIANGLES,
+                volume.indices.len() as i32,
+                glow::UNSIGNED_INT,
+                0,
+            );
+            if self.gl_glow.get_error() != glow::NO_ERROR {
+                println!("Error: {}", self.gl_glow.get_error());
+            }
+        }
+        // let _ = event_loop.run(move |event, elwt| {
+        //     match event {
+        //         Event::LoopExiting => return,
+        //         Event::WindowEvent { event, .. } => match event {
+        //             WindowEvent::CloseRequested => {
+        //                 // Cleanup
+        //                 unsafe {
+        //                     shaders.delete_program(&self.gl, program);
+        //                     shaders.delete_shader(&self.gl, fs);
+        //                     shaders.delete_shader(&self.gl, vs);
+        //                     self.gl.delete_vertex_array(self.vao.unwrap());
+        //                     self.gl.delete_buffer(self.vbo.unwrap());
+        //                     self.gl.delete_buffer(self.ebo.unwrap());
+        //                 }
+        //                 elwt.exit();
+        //             }
+        //             WindowEvent::RedrawRequested => {
+        //                 // gl_surface
+        //                 //     .swap_buffers(&gl_possibly_current_context)
+        //                 //     .unwrap();
+        //             }
+        //             _ => (),
+        //         },
+        //         _ => (),
+        //     }
+        //     // gl_window.request_redraw();
+        // });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                ui.label("The triangle is being painted using ");
+                ui.hyperlink_to("glow", "https://github.com/grovesNL/glow");
+                ui.label(" (OpenGL).");
+            });
+
+            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                // self.custom_painting(ui);
+            });
+            ui.label("Drag to rotate!");
+        });
     }
 }

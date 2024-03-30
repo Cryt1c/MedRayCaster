@@ -1,11 +1,14 @@
 pub mod shader {
+    use egui::Rect;
     use glow::HasContext;
+    use glow::NativeProgram;
     use nalgebra::Matrix3;
     use nalgebra::Matrix4;
     use nalgebra::Vector2;
     use nalgebra::Vector3;
     use nalgebra::Vector4;
     use std::str;
+    use winit::window;
 
     pub struct Shader {
         vertex: String,
@@ -85,6 +88,34 @@ pub mod shader {
             unsafe {
                 gl_glow.use_program(Some(program));
             }
+        }
+        pub fn set_uniform_values(
+            &self,
+            gl_glow: &glow::Context,
+            program: NativeProgram,
+            screen_rect: Rect,
+        ) {
+            let m_fov: f32 = 45.0;
+            let fov_radians = m_fov.to_radians();
+            let m_aspect_ratio = screen_rect.width() / screen_rect.height();
+            let time = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f64();
+            let time_sin = time.sin() as f32;
+
+            let model_matrix =
+                nalgebra_glm::rotate(&Matrix4::identity(), 0.0, &Vector3::new(0.0, 1.0, 0.0));
+            let cam_pos = Vector3::new(time_sin * 0.5, 0.0, -2.5);
+            let view_matrix = nalgebra_glm::translate(&Matrix4::identity(), &cam_pos);
+
+            let projection_matrix =
+                nalgebra_glm::perspective(fov_radians, m_aspect_ratio, 0.1, 100.0);
+
+            self.set_uniform_value(&gl_glow, program, "camPos", cam_pos);
+            self.set_uniform_value(&gl_glow, program, "M", model_matrix);
+            self.set_uniform_value(&gl_glow, program, "V", view_matrix);
+            self.set_uniform_value(&gl_glow, program, "P", projection_matrix);
         }
 
         pub fn set_uniform_value<T: Uniform>(
