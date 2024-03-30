@@ -8,7 +8,6 @@ pub mod shader {
     use nalgebra::Vector3;
     use nalgebra::Vector4;
     use std::str;
-    use winit::window;
 
     pub struct Shader {
         vertex: String,
