@@ -92,6 +92,7 @@ pub mod shader {
             &self,
             gl_glow: &glow::Context,
             program: NativeProgram,
+            camera_y: f32,
             screen_rect: Rect,
         ) {
             let m_fov: f32 = 45.0;
@@ -105,7 +106,7 @@ pub mod shader {
 
             let model_matrix =
                 nalgebra_glm::rotate(&Matrix4::identity(), 0.0, &Vector3::new(0.0, 1.0, 0.0));
-            let cam_pos = Vector3::new(time_sin * 0.5, 0.0, -2.5);
+            let cam_pos = Vector3::new(camera_y, 0.0, -2.5);
             let view_matrix = nalgebra_glm::translate(&Matrix4::identity(), &cam_pos);
 
             let projection_matrix =

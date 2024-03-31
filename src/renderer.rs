@@ -13,6 +13,8 @@ pub struct Renderer {
     pub ebo: Option<NativeBuffer>,
     pub texture: Option<NativeTexture>,
     pub volume: Volume,
+    pub mip_shader: bool,
+    pub camera_y: f32,
 }
 
 impl Renderer {
@@ -31,6 +33,8 @@ impl Renderer {
             frame_count: 0,
             start_time: std::time::Instant::now(),
             volume: Volume::new(),
+            mip_shader: false,
+            camera_y: 0.0,
         };
         renderer.create_vao();
         renderer.create_vbo();
@@ -125,37 +129,70 @@ impl Renderer {
 
 impl eframe::App for Renderer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let shaders =
-            Shader::load_from_file("shaders/vertex_shader.glsl", "shaders/raycaster.glsl");
-        // Create GLSL shaders
-        let vs = shaders.compile_shader(&self.gl_glow, shaders.get_vertex(), glow::VERTEX_SHADER);
-        let fs =
-            shaders.compile_shader(&self.gl_glow, shaders.get_fragment(), glow::FRAGMENT_SHADER);
-        let program = shaders.link_program(&self.gl_glow, vs, fs);
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                ui.label("Raycaster");
+                ui.checkbox(&mut self.mip_shader, "MIP shader");
+                ui.add(egui::Slider::new(&mut self.camera_y, -1.0..=1.0).text("Camera"));
+            });
+            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                let (rect, _) =
+                    ui.allocate_exact_size(egui::Vec2::new(ctx.screen_rect().width(), ctx.screen_rect().height()), egui::Sense::drag());
 
-        let screen_rect = ctx.available_rect();
-        unsafe {
-            // Clear the screen to black
-            self.gl_glow.clear_color(0.0, 0.0, 0.0, 1.0);
-            self.gl_glow.clear(glow::COLOR_BUFFER_BIT);
-            self.gl_glow.bind_texture(glow::TEXTURE_3D, self.texture);
+                // Create local variables to ensure thread safety
+                let texture = self.texture;
+                let vao = self.vao;
+                let indices_length = self.volume.indices.len();
+                let mip_shader = self.mip_shader;
+                let camera_y = self.camera_y;
+                let screen_rect = ctx.screen_rect();
 
-            // Use shader program
-            shaders.use_program(&self.gl_glow, program);
-
-            shaders.set_uniform_values(&self.gl_glow, program, screen_rect);
-
-            self.gl_glow.bind_vertex_array(self.vao);
-            self.gl_glow.draw_elements(
-                glow::TRIANGLES,
-                self.volume.indices.len() as i32,
-                glow::UNSIGNED_INT,
-                0,
-            );
-            if self.gl_glow.get_error() != glow::NO_ERROR {
-                println!("Error: {}", self.gl_glow.get_error());
-            }
-        }
+                let callback = egui::PaintCallback {
+                    rect,
+                    callback: std::sync::Arc::new(egui_glow::CallbackFn::new(
+                        move |_info, painter| {
+                            let fragment_shader = if mip_shader {
+                                "shaders/mip_shader.glsl"
+                            } else {
+                                "shaders/raycaster.glsl"
+                            };
+                            let shaders = Shader::load_from_file(
+                                "shaders/vertex_shader.glsl",
+                                fragment_shader,
+                            );
+                            let vs = shaders.compile_shader(
+                                &painter.gl(),
+                                shaders.get_vertex(),
+                                glow::VERTEX_SHADER,
+                            );
+                            let fs = shaders.compile_shader(
+                                &painter.gl(),
+                                shaders.get_fragment(),
+                                glow::FRAGMENT_SHADER,
+                            );
+                            let program = shaders.link_program(&painter.gl(), vs, fs);
+                            unsafe {
+                                painter.gl().bind_texture(glow::TEXTURE_3D, texture);
+                                shaders.use_program(&painter.gl(), program);
+                                shaders.set_uniform_values(&painter.gl(), program, camera_y, screen_rect);
+                                painter.gl().bind_vertex_array(vao);
+                                painter.gl().draw_elements(
+                                    glow::TRIANGLES,
+                                    indices_length as i32,
+                                    glow::UNSIGNED_INT,
+                                    0,
+                                );
+                                if painter.gl().get_error() != glow::NO_ERROR {
+                                    println!("Error: {}", painter.gl().get_error());
+                                }
+                            }
+                        },
+                    )),
+                };
+                ui.painter().add(callback);
+            });
+        });
         ctx.request_repaint();
         // let _ = event_loop.run(move |event, elwt| {
         //     match event {
@@ -184,19 +221,7 @@ impl eframe::App for Renderer {
         //     }
         //     // gl_window.request_redraw();
         // });
-        // egui::CentralPanel::default().show(ctx, |ui| {
-        //     ui.horizontal(|ui| {
-        //         ui.spacing_mut().item_spacing.x = 0.0;
-        //         ui.label("The triangle is being painted using ");
-        //         ui.hyperlink_to("glow", "https://github.com/grovesNL/glow");
-        //         ui.label(" (OpenGL).");
-        //     });
-        //
-        //     egui::Frame::canvas(ui.style()).show(ui, |ui| {
-        //         // self.custom_painting(ui);
-        //     });
-        //     ui.label("Drag to rotate!");
-        // });
+
         self.frame_count += 1;
         let now = std::time::Instant::now();
         let elapsed = now - self.start_time;
