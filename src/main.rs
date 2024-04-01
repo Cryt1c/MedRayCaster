@@ -1,5 +1,7 @@
 mod renderer;
 mod volume;
+mod uniform;
+mod shader;
 
 fn main() {
     let options = eframe::NativeOptions {

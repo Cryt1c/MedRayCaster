@@ -1,8 +1,8 @@
-use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
-use opengl_rs::shader::Shader;
-use std::{mem, sync::Arc};
-
 use crate::volume::Volume;
+use crate::{shader::Shader, uniform::set_uniform_value};
+use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
+use nalgebra::{Matrix4, Vector3};
+use std::{mem, sync::Arc};
 
 pub struct Renderer {
     start_time: std::time::Instant,
@@ -137,8 +137,10 @@ impl eframe::App for Renderer {
                 ui.add(egui::Slider::new(&mut self.camera_y, -1.0..=1.0).text("Camera"));
             });
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                let (rect, _) =
-                    ui.allocate_exact_size(egui::Vec2::new(ctx.screen_rect().width(), ctx.screen_rect().height()), egui::Sense::drag());
+                let (rect, _) = ui.allocate_exact_size(
+                    egui::Vec2::new(ctx.screen_rect().width(), ctx.screen_rect().height()),
+                    egui::Sense::drag(),
+                );
 
                 // Create local variables to ensure thread safety
                 let texture = self.texture;
@@ -175,7 +177,44 @@ impl eframe::App for Renderer {
                             unsafe {
                                 painter.gl().bind_texture(glow::TEXTURE_3D, texture);
                                 shaders.use_program(&painter.gl(), program);
-                                shaders.set_uniform_values(&painter.gl(), program, camera_y, screen_rect);
+
+                                // Set uniforms
+                                let fov_radians = 45.0_f32.to_radians();
+                                let aspect_ratio = screen_rect.width() / screen_rect.height();
+                                let model_matrix = nalgebra_glm::rotate(
+                                    &Matrix4::identity(),
+                                    0.0,
+                                    &Vector3::new(0.0, 1.0, 0.0),
+                                );
+                                let cam_pos = Vector3::new(camera_y, 0.0, -2.5);
+                                let view_matrix =
+                                    nalgebra_glm::translate(&Matrix4::identity(), &cam_pos);
+                                let projection_matrix = nalgebra_glm::perspective(
+                                    fov_radians,
+                                    aspect_ratio,
+                                    0.1,
+                                    100.0,
+                                );
+                                Shader::set_uniform_value(
+                                    &painter.gl(),
+                                    program,
+                                    "camPos",
+                                    cam_pos,
+                                );
+                                Shader::set_uniform_value(
+                                    &painter.gl(),
+                                    program,
+                                    "M",
+                                    model_matrix,
+                                );
+                                Shader::set_uniform_value(&painter.gl(), program, "V", view_matrix);
+                                Shader::set_uniform_value(
+                                    &painter.gl(),
+                                    program,
+                                    "P",
+                                    projection_matrix,
+                                );
+
                                 painter.gl().bind_vertex_array(vao);
                                 painter.gl().draw_elements(
                                     glow::TRIANGLES,
