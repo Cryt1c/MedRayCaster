@@ -1,10 +1,5 @@
-use crate::uniform::set_uniform_value;
 use crate::uniform::Uniform;
-use egui::Rect;
 use glow::HasContext;
-use glow::NativeProgram;
-use nalgebra::Matrix4;
-use nalgebra::Vector3;
 use std::str;
 
 pub struct Shader {
