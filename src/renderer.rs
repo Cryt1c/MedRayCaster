@@ -193,8 +193,13 @@ impl eframe::App for Renderer {
                                     &Vector3::new(0.0, 1.0, 0.0),
                                 );
                                 let cam_pos = Vector3::new(camera_y, 0.0, camera_z);
-                                let view_matrix =
-                                    nalgebra_glm::translate(&Matrix4::identity(), &cam_pos);
+
+                                let view_matrix = nalgebra_glm::look_at(
+                                    &cam_pos,
+                                    &Vector3::new(0.0, 0.0, 0.0),
+                                    &Vector3::new(0.0, 1.0, 0.0),
+                                );
+
                                 let projection_matrix = nalgebra_glm::perspective(
                                     fov_radians,
                                     aspect_ratio,
