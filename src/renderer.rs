@@ -14,6 +14,7 @@ pub struct Renderer {
     pub texture: Option<NativeTexture>,
     pub volume: Volume,
     pub mip_shader: bool,
+    pub camera_x: f32,
     pub camera_y: f32,
     pub camera_z: f32,
 }
@@ -35,6 +36,7 @@ impl Renderer {
             start_time: std::time::Instant::now(),
             volume: Volume::new(),
             mip_shader: false,
+            camera_x: 0.0,
             camera_y: 0.0,
             camera_z: -2.5,
         };
@@ -133,10 +135,13 @@ impl eframe::App for Renderer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = 0.0;
-                ui.label("Raycaster");
+                ui.spacing_mut().item_spacing.x = 10.0;
                 ui.checkbox(&mut self.mip_shader, "MIP shader");
-                ui.add(egui::Slider::new(&mut self.camera_y, -1.0..=1.0).text("Camera Y"));
+                ui.vertical(|ui| {
+                    ui.add(egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Camera X"));
+                    ui.add(egui::Slider::new(&mut self.camera_y, -2.5..=2.5).text("Camera Y"));
+                    ui.add(egui::Slider::new(&mut self.camera_z, -2.5..=2.5).text("Camera Z"));
+                })
             });
             if ctx.input(|i| i.zoom_delta() != 1.0) {
                 self.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
@@ -152,6 +157,7 @@ impl eframe::App for Renderer {
                 let vao = self.vao;
                 let indices_length = self.volume.indices.len();
                 let mip_shader = self.mip_shader;
+                let camera_x = self.camera_x;
                 let camera_y = self.camera_y;
                 let camera_z = self.camera_z;
                 let screen_rect = ctx.screen_rect();
@@ -193,7 +199,7 @@ impl eframe::App for Renderer {
                                     0.0,
                                     &Vector3::new(0.0, 1.0, 0.0),
                                 );
-                                let cam_pos = Vector3::new(camera_y, 0.0, camera_z);
+                                let cam_pos = Vector3::new(camera_x, camera_y, camera_z);
 
                                 let view_matrix = nalgebra_glm::look_at(
                                     &cam_pos,
