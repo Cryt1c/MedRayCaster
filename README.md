@@ -2,7 +2,7 @@
 
 TODO:
 - [x] Clean up original project (Cryt1c/opengl_rs).
-- [] Implement loader for .raw files.
+- [x] Implement loader for .raw files.
 - [] Implement unit tests.
 - [] Implement additional shader/improve existing shader.
 
