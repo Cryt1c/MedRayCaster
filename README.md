@@ -3,8 +3,11 @@
 TODO:
 - [x] Clean up original project (Cryt1c/opengl_rs).
 - [x] Implement loader for .raw files.
-- [] Implement unit tests.
-- [] Implement additional shader/improve existing shader.
+- [x] Implement unit tests.
+- [x] Implement additional shader/improve existing shader.
+- [] Improve file loading by running hounsfield unit normalization concurrently.
+- [] Implement average intensity shader.
+- [] Correct model positioning in world view.
 
 This repository is an extension of (https://github.com/Cryt1c/opengl_rs). Original README.md:
 
