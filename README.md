@@ -5,7 +5,7 @@ TODO:
 - [x] Implement loader for .raw files.
 - [x] Implement unit tests.
 - [x] Implement additional shader/improve existing shader.
-- [] Improve file loading by running hounsfield unit normalization concurrently.
+- [x] Improve file loading by running hounsfield unit normalization concurrently.
 - [] Implement average intensity shader.
 - [] Correct model positioning in world view.
 

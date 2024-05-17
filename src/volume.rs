@@ -1,7 +1,9 @@
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
+use rayon::prelude::*;
 use std::fs::read_to_string;
 use std::fs::File;
+use std::io::BufReader;
 use three_d_asset::{Texture3D, TextureData};
 
 #[derive(Debug, PartialEq)]
@@ -78,17 +80,18 @@ impl Volume {
         let dimensions = Volume::parse_meta_data_dim(&meta_data);
 
         let num_elements = dimensions.height * dimensions.width * dimensions.depth;
-        let mut file = File::open(file_path).expect("Unable to open RAW file");
-        let mut buffer = Vec::with_capacity(num_elements.try_into().unwrap());
+        let file = File::open(file_path).expect("Unable to open RAW file");
+        let mut reader = BufReader::new(file);
 
-        for _ in 0..num_elements {
-            let value = file
-                .read_u16::<LittleEndian>()
-                .expect("Unable to read u16 from RAW file");
-            let normalized_hu_value = Volume::normalize_hounsfield_units(value);
-            println!("{:?}", normalized_hu_value);
-            buffer.push(normalized_hu_value);
-        }
+        let mut raw_data = vec![0u16; num_elements as usize];
+        reader
+            .read_u16_into::<LittleEndian>(&mut raw_data)
+            .expect("Unable to read u16 from RAW file");
+
+        let buffer: Vec<u8> = raw_data
+            .par_iter()
+            .map(|&value| Volume::normalize_hounsfield_units(value))
+            .collect();
 
         Texture {
             dimensions: Dim {

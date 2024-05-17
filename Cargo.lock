@@ -2152,6 +2152,7 @@ dependencies = [
  "nalgebra",
  "nalgebra-glm",
  "raw-window-handle 0.5.2",
+ "rayon",
  "three-d-asset",
  "winit",
 ]
