@@ -1,5 +1,5 @@
+use crate::shader::Shader;
 use crate::volume::Volume;
-use crate::{shader::Shader, uniform::set_uniform_value};
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 use nalgebra::{Matrix4, Vector3};
 use std::{mem, sync::Arc};
@@ -116,13 +116,13 @@ impl Renderer {
                 glow::TEXTURE_3D,
                 0,
                 glow::RGB as i32,
-                self.volume.width as i32,
-                self.volume.height as i32,
-                self.volume.depth as i32,
+                self.volume.texture.dimensions.width as i32,
+                self.volume.texture.dimensions.height as i32,
+                self.volume.texture.dimensions.depth as i32,
                 0,
                 glow::RED,
                 glow::UNSIGNED_BYTE,
-                Some(bytemuck::cast_slice(&self.volume.texture_data)),
+                Some(bytemuck::cast_slice(&self.volume.texture.texture_data)),
             );
             self.gl_glow.generate_mipmap(glow::TEXTURE_3D);
         }
@@ -180,6 +180,8 @@ impl eframe::App for Renderer {
                                 glow::FRAGMENT_SHADER,
                             );
                             let program = shaders.link_program(&painter.gl(), vs, fs);
+                            shaders.delete_shader(&painter.gl(), vs);
+                            shaders.delete_shader(&painter.gl(), fs);
                             unsafe {
                                 painter.gl().bind_texture(glow::TEXTURE_3D, texture);
                                 shaders.use_program(&painter.gl(), program);

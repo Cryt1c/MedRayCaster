@@ -1,12 +1,23 @@
+use byteorder::{LittleEndian, ReadBytesExt};
+use std::fs::File;
+
 use three_d_asset::{Texture3D, TextureData};
+
+pub struct Dim {
+    pub width: i32,
+    pub height: i32,
+    pub depth: i32,
+}
+
+pub struct Texture {
+    pub texture_data: Vec<u8>,
+    pub dimensions: Dim,
+}
 
 pub struct Volume {
     pub vertex_data: [f32; 24],
     pub indices: [u32; 36],
-    pub texture_data: Vec<u8>,
-    pub width: i32,
-    pub height: i32,
-    pub depth: i32,
+    pub texture: Texture,
 }
 
 impl Volume {
@@ -15,6 +26,7 @@ impl Volume {
             -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5,
             -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5,
         ];
+
         let indices = [
             0, 1, 2, 0, 2, 3, // front
             1, 5, 6, 1, 6, 2, // right
@@ -24,7 +36,17 @@ impl Volume {
             4, 5, 1, 4, 1, 0, // bottom
         ];
 
-        let texture_3d: Texture3D = three_d_asset::io::load(&["examples/assets/Skull.vol"])
+        let result = Volume::read_vol("examples/assets/Skull.vol");
+
+        Volume {
+            vertex_data,
+            indices,
+            texture: result,
+        }
+    }
+
+    pub fn read_vol(file_path: &str) -> Texture {
+        let texture_3d: Texture3D = three_d_asset::io::load(&[file_path])
             .unwrap()
             .deserialize("")
             .unwrap();
@@ -35,13 +57,14 @@ impl Volume {
             TextureData::RU8(data) => data,
             _ => panic!("Expected RU8 texture data format"), // Handle other cases as needed
         };
-        Volume {
-            vertex_data,
-            indices,
+
+        Texture {
+            dimensions: Dim {
+                width,
+                height,
+                depth,
+            },
             texture_data,
-            width,
-            height,
-            depth,
         }
     }
 }
