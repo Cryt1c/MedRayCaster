@@ -160,7 +160,7 @@ impl eframe::App for Renderer {
                 let fragment_shader = if mip_shader {
                     "shaders/mip_shader.glsl"
                 } else {
-                    "shaders/raycaster.glsl"
+                    "shaders/cookbook_shader.glsl"
                 };
                 let shaders = Shader::load_from_file("shaders/vertex_shader.glsl", fragment_shader);
 

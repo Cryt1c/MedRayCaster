@@ -21,7 +21,7 @@ void main() {
 	float max_value = 0.0;
 	for (int i = 0; i < MAX_SAMPLES; i++) {
 		dataPos = dataPos + dirStep;
-		stop = dot(sign(dataPos-texMin),sign(texMax-dataPos)) < 3.0;
+		stop = dot(sign(dataPos-texMin), sign(texMax-dataPos)) < 3.0;
 
 		if (stop) {
 			vFragColor.rgba = vec4(max_value, max_value, max_value, max_value);

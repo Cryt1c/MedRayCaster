@@ -5,7 +5,7 @@ layout(location = 0) out vec4 vFragColor;
 smooth in vec3 vUV;		
 
 uniform sampler3D	volume;
-uniform vec3		camPos;
+uniform vec3 camPos;
 
 const int MAX_SAMPLES = 300;	
 const vec3 texMin = vec3(0);	
