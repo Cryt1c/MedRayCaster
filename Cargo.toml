@@ -1,0 +1,22 @@
+[package]
+name = "opengl_rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bytemuck = "1.15.0"
+eframe = { version = "0.27.1", features = ["glow"] }
+egui = "0.27.0"
+egui-winit = "0.27.0"
+egui_glow = "0.27.1"
+glow = "0.13.1"
+glutin = "0.31"
+glutin-winit = "0.4.2"
+image = "0.24.9"
+nalgebra = "0.32.4"
+nalgebra-glm = "0.18.0"
+raw-window-handle = "0.5.0"
+three-d-asset = { version = "0.7.0", features = ["vol"] }
+winit = "0.29.15"
