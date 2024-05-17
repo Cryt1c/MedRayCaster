@@ -32,7 +32,7 @@ void main() {
 		vFragColor.rgb = prev_alpha * vec3(sample) + vFragColor.rgb; 
 		vFragColor.a += prev_alpha; 
 			
-		if( vFragColor.a>0.99)
+		if (vFragColor.a > 0.99)
 			break;
 	} 
 }
