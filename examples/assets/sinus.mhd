@@ -1,0 +1,3 @@
+NDims = 3
+DimSize = 512 512 333
+ElementSpacing = 0.402344 0.402344 0.899994
