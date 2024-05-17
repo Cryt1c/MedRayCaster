@@ -8,32 +8,24 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn new(vertex: &str, fragment: &str) -> Shader {
-        Shader {
-            vertex: vertex.to_string(),
-            fragment: fragment.to_string(),
-        }
-    }
     pub fn load_from_file(vertex_path: &str, fragment_path: &str) -> Shader {
         Shader {
             vertex: std::fs::read_to_string(vertex_path).unwrap(),
             fragment: std::fs::read_to_string(fragment_path).unwrap(),
         }
     }
+
     pub fn get_vertex(&self) -> &str {
         &self.vertex
     }
+
     pub fn get_fragment(&self) -> &str {
         &self.fragment
     }
+
     pub fn delete_shader(&self, gl_glow: &glow::Context, shader: glow::NativeShader) {
         unsafe {
             gl_glow.delete_shader(shader);
-        }
-    }
-    pub fn delete_program(&self, gl_glow: &glow::Context, program: glow::NativeProgram) {
-        unsafe {
-            gl_glow.delete_program(program);
         }
     }
 
@@ -55,6 +47,7 @@ impl Shader {
             shader
         }
     }
+
     pub fn link_program(
         &self,
         gl_glow: &glow::Context,

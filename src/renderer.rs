@@ -116,9 +116,9 @@ impl Renderer {
                 glow::TEXTURE_3D,
                 0,
                 glow::RGB as i32,
-                self.volume.texture.dimensions.width as i32,
-                self.volume.texture.dimensions.height as i32,
-                self.volume.texture.dimensions.depth as i32,
+                self.volume.texture.dimensions.width,
+                self.volume.texture.dimensions.height,
+                self.volume.texture.dimensions.depth,
                 0,
                 glow::RED,
                 glow::UNSIGNED_BYTE,
@@ -147,7 +147,7 @@ impl eframe::App for Renderer {
                     egui::Sense::drag(),
                 );
 
-                // Create local variables to ensure thread safety
+                // Create local variables to ensure thread safety.
                 let texture = self.texture;
                 let vao = self.vao;
                 let indices_length = self.volume.indices.len();
@@ -156,35 +156,34 @@ impl eframe::App for Renderer {
                 let camera_z = self.camera_z;
                 let screen_rect = ctx.screen_rect();
 
+                // Prepare shaders.
+                let fragment_shader = if mip_shader {
+                    "shaders/mip_shader.glsl"
+                } else {
+                    "shaders/raycaster.glsl"
+                };
+                let shaders = Shader::load_from_file("shaders/vertex_shader.glsl", fragment_shader);
+
                 let callback = egui::PaintCallback {
                     rect,
                     callback: std::sync::Arc::new(egui_glow::CallbackFn::new(
                         move |_info, painter| {
-                            let fragment_shader = if mip_shader {
-                                "shaders/mip_shader.glsl"
-                            } else {
-                                "shaders/raycaster.glsl"
-                            };
-                            let shaders = Shader::load_from_file(
-                                "shaders/vertex_shader.glsl",
-                                fragment_shader,
-                            );
                             let vs = shaders.compile_shader(
-                                &painter.gl(),
+                                painter.gl(),
                                 shaders.get_vertex(),
                                 glow::VERTEX_SHADER,
                             );
                             let fs = shaders.compile_shader(
-                                &painter.gl(),
+                                painter.gl(),
                                 shaders.get_fragment(),
                                 glow::FRAGMENT_SHADER,
                             );
-                            let program = shaders.link_program(&painter.gl(), vs, fs);
-                            shaders.delete_shader(&painter.gl(), vs);
-                            shaders.delete_shader(&painter.gl(), fs);
+                            let program = shaders.link_program(painter.gl(), vs, fs);
+                            shaders.delete_shader(painter.gl(), vs);
+                            shaders.delete_shader(painter.gl(), fs);
                             unsafe {
                                 painter.gl().bind_texture(glow::TEXTURE_3D, texture);
-                                shaders.use_program(&painter.gl(), program);
+                                shaders.use_program(painter.gl(), program);
 
                                 // Set uniforms
                                 let fov_radians = 45.0_f32.to_radians();
@@ -209,20 +208,20 @@ impl eframe::App for Renderer {
                                     100.0,
                                 );
                                 Shader::set_uniform_value(
-                                    &painter.gl(),
+                                    painter.gl(),
                                     program,
                                     "camPos",
                                     cam_pos,
                                 );
                                 Shader::set_uniform_value(
-                                    &painter.gl(),
+                                    painter.gl(),
                                     program,
                                     "M",
                                     model_matrix,
                                 );
-                                Shader::set_uniform_value(&painter.gl(), program, "V", view_matrix);
+                                Shader::set_uniform_value(painter.gl(), program, "V", view_matrix);
                                 Shader::set_uniform_value(
-                                    &painter.gl(),
+                                    painter.gl(),
                                     program,
                                     "P",
                                     projection_matrix,
@@ -246,33 +245,6 @@ impl eframe::App for Renderer {
             });
         });
         ctx.request_repaint();
-        // let _ = event_loop.run(move |event, elwt| {
-        //     match event {
-        //         Event::LoopExiting => return,
-        //         Event::WindowEvent { event, .. } => match event {
-        //             WindowEvent::CloseRequested => {
-        //                 // Cleanup
-        //                 unsafe {
-        //                     shaders.delete_program(&self.gl, program);
-        //                     shaders.delete_shader(&self.gl, fs);
-        //                     shaders.delete_shader(&self.gl, vs);
-        //                     self.gl.delete_vertex_array(self.vao.unwrap());
-        //                     self.gl.delete_buffer(self.vbo.unwrap());
-        //                     self.gl.delete_buffer(self.ebo.unwrap());
-        //                 }
-        //                 elwt.exit();
-        //             }
-        //             WindowEvent::RedrawRequested => {
-        //                 // gl_surface
-        //                 //     .swap_buffers(&gl_possibly_current_context)
-        //                 //     .unwrap();
-        //             }
-        //             _ => (),
-        //         },
-        //         _ => (),
-        //     }
-        //     // gl_window.request_redraw();
-        // });
 
         self.frame_count += 1;
         let now = std::time::Instant::now();

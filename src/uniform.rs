@@ -5,18 +5,6 @@ pub trait Uniform {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>);
 }
 
-pub fn set_uniform_value<T: Uniform>(
-    gl_glow: &glow::Context,
-    program: glow::NativeProgram,
-    name: &str,
-    value: T,
-) {
-    unsafe {
-        let location = gl_glow.get_uniform_location(program, name);
-        value.set_uniform(gl_glow, location);
-    }
-}
-
 impl Uniform for f32 {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {
@@ -32,6 +20,7 @@ impl Uniform for i32 {
         }
     }
 }
+
 impl Uniform for Matrix4<f32> {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {
@@ -39,6 +28,7 @@ impl Uniform for Matrix4<f32> {
         }
     }
 }
+
 impl Uniform for Matrix3<f32> {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {
@@ -46,6 +36,7 @@ impl Uniform for Matrix3<f32> {
         }
     }
 }
+
 impl Uniform for Vector2<f32> {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {
@@ -53,6 +44,7 @@ impl Uniform for Vector2<f32> {
         }
     }
 }
+
 impl Uniform for Vector3<f32> {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {
@@ -60,6 +52,7 @@ impl Uniform for Vector3<f32> {
         }
     }
 }
+
 impl Uniform for Vector4<f32> {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {

@@ -2140,7 +2140,6 @@ name = "opengl_rs"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "byteorder",
  "eframe",
  "egui",
  "egui-winit",

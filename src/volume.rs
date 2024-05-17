@@ -1,6 +1,3 @@
-use byteorder::{LittleEndian, ReadBytesExt};
-use std::fs::File;
-
 use three_d_asset::{Texture3D, TextureData};
 
 pub struct Dim {
@@ -55,7 +52,7 @@ impl Volume {
         let depth = texture_3d.depth as i32;
         let texture_data = match texture_3d.data {
             TextureData::RU8(data) => data,
-            _ => panic!("Expected RU8 texture data format"), // Handle other cases as needed
+            _ => panic!("Expected RU8 texture data format"),
         };
 
         Texture {
