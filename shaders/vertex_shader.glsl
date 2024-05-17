@@ -1,5 +1,5 @@
 #version 330
-layout(location = 0) in vec3 a_position; //object space vertex position
+layout(location = 0) in vec3 a_position;
 
 uniform mat4 M;
 uniform mat4 V;
