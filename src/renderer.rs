@@ -17,6 +17,9 @@ pub struct Renderer {
     pub camera_x: f32,
     pub camera_y: f32,
     pub camera_z: f32,
+    pub rotation_x: f32,
+    pub rotation_y: f32,
+    pub rotation_z: f32,
 }
 
 impl Renderer {
@@ -39,6 +42,9 @@ impl Renderer {
             camera_x: 0.0,
             camera_y: 0.0,
             camera_z: -2.5,
+            rotation_x: 0.0,
+            rotation_y: 0.0,
+            rotation_z: 0.0,
         };
         renderer.create_vao();
         renderer.create_vbo();
@@ -141,6 +147,11 @@ impl eframe::App for Renderer {
                     ui.add(egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Camera X"));
                     ui.add(egui::Slider::new(&mut self.camera_y, -2.5..=2.5).text("Camera Y"));
                     ui.add(egui::Slider::new(&mut self.camera_z, -2.5..=2.5).text("Camera Z"));
+                });
+                ui.vertical(|ui| {
+                    ui.add(egui::Slider::new(&mut self.rotation_x, 0.0..=360.0).text("Rotation X"));
+                    ui.add(egui::Slider::new(&mut self.rotation_y, 0.0..=360.0).text("Rotation Y"));
+                    ui.add(egui::Slider::new(&mut self.rotation_z, 0.0..=360.0).text("Rotation Z"));
                 })
             });
             if ctx.input(|i| i.zoom_delta() != 1.0) {
@@ -160,6 +171,9 @@ impl eframe::App for Renderer {
                 let camera_x = self.camera_x;
                 let camera_y = self.camera_y;
                 let camera_z = self.camera_z;
+                let rotation_x = self.rotation_x;
+                let rotation_y = self.rotation_y;
+                let rotation_z = self.rotation_z;
                 let screen_rect = ctx.screen_rect();
 
                 // Prepare shaders.
@@ -187,25 +201,32 @@ impl eframe::App for Renderer {
                             let program = shaders.link_program(painter.gl(), vs, fs);
                             shaders.delete_shader(painter.gl(), vs);
                             shaders.delete_shader(painter.gl(), fs);
+
                             unsafe {
                                 painter.gl().bind_texture(glow::TEXTURE_3D, texture);
                                 shaders.use_program(painter.gl(), program);
 
-                                // Set uniforms
                                 let fov_radians = 45.0_f32.to_radians();
                                 let aspect_ratio = screen_rect.width() / screen_rect.height();
-                                let model_matrix = nalgebra_glm::rotate(
-                                    &Matrix4::identity(),
-                                    0.0,
-                                    &Vector3::new(0.0, 1.0, 0.0),
-                                );
-                                let cam_pos = Vector3::new(camera_x, camera_y, camera_z);
 
-                                let view_matrix = nalgebra_glm::look_at(
-                                    &cam_pos,
-                                    &Vector3::new(0.0, 0.0, 0.0),
-                                    &Vector3::new(0.0, 1.0, 0.0),
-                                );
+                                let model_matrix = Matrix4::identity();
+
+                                let mut cam_pos = Vector3::new(camera_x, camera_y, camera_z);
+                                let mut up = Vector3::new(0.0, 1.0, 0.0);
+                                let origin = Vector3::new(0.0, 0.0, 0.0);
+
+                                cam_pos =
+                                    nalgebra_glm::rotate_x_vec3(&cam_pos, rotation_x.to_radians());
+                                cam_pos =
+                                    nalgebra_glm::rotate_y_vec3(&cam_pos, rotation_y.to_radians());
+                                cam_pos =
+                                    nalgebra_glm::rotate_z_vec3(&cam_pos, rotation_z.to_radians());
+
+                                up = nalgebra_glm::rotate_x_vec3(&up, rotation_x.to_radians());
+                                up = nalgebra_glm::rotate_y_vec3(&up, rotation_y.to_radians());
+                                up = nalgebra_glm::rotate_z_vec3(&up, rotation_z.to_radians());
+
+                                let view_matrix = nalgebra_glm::look_at(&cam_pos, &origin, &up);
 
                                 let projection_matrix = nalgebra_glm::perspective(
                                     fov_radians,
@@ -213,6 +234,7 @@ impl eframe::App for Renderer {
                                     0.1,
                                     100.0,
                                 );
+
                                 Shader::set_uniform_value(painter.gl(), program, "camPos", cam_pos);
                                 Shader::set_uniform_value(painter.gl(), program, "M", model_matrix);
                                 Shader::set_uniform_value(painter.gl(), program, "V", view_matrix);
