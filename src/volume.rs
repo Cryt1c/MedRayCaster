@@ -22,6 +22,7 @@ pub struct Volume {
     pub vertex_data: [f32; 24],
     pub indices: [u32; 36],
     pub texture: Texture,
+    pub histogram: Vec<f64>,
 }
 
 impl Volume {
@@ -42,13 +43,15 @@ impl Volume {
 
         // TODO: Automatically detect file format and use specific loader.
         // let result = Volume::read_vol("examples/assets/Skull.vol");
-        let result = Volume::read_raw("examples/assets/sinus.raw", "examples/assets/sinus.mhd");
-        println!("Texture dimensions: {:?}", result.dimensions);
+        let texture = Volume::read_raw("examples/assets/sinus.raw", "examples/assets/sinus.mhd");
+
+        let histogram = Volume::calculate_histogram(&texture.texture_data);
 
         Volume {
             vertex_data,
             indices,
-            texture: result,
+            texture,
+            histogram,
         }
     }
 
@@ -151,11 +154,11 @@ impl Volume {
         dimensions
     }
 
-    pub fn calculate_histogram(texture_data: Vec<u8>) -> Vec<u32> {
-        let mut histogram = vec![0; 256];
+    pub fn calculate_histogram(texture_data: &Vec<u8>) -> Vec<f64> {
+        let mut histogram = vec![0.0_f64; 256];
 
         texture_data.iter().for_each(|&value| {
-            histogram[value as usize] += 1;
+            histogram[value as usize] += 1.0_f64;
         });
 
         histogram
@@ -194,11 +197,11 @@ mod test {
     #[test]
     fn test_histogram_calculation() {
         let input: Vec<u8> = vec![0, 0, 0, 128, 128, 128, 255, 255, 255];
-        let mut expected: Vec<u32> = vec![0; 256];
-        expected[0] = 3;
-        expected[128] = 3;
-        expected[255] = 3;
-        let result = Volume::calculate_histogram(input);
+        let mut expected: Vec<f64> = vec![0.0; 256];
+        expected[0] = 3.0;
+        expected[128] = 3.0;
+        expected[255] = 3.0;
+        let result = Volume::calculate_histogram(&input);
 
         assert_eq!(expected, result);
     }
