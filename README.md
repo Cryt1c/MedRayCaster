@@ -6,8 +6,10 @@ TODO:
 - [x] Implement unit tests.
 - [x] Implement additional shader/improve existing shader.
 - [x] Improve file loading by running hounsfield unit normalization concurrently.
-- [] Implement average intensity shader.
 - [x] Correct model positioning in world view (possible using camera controls).
+- [] Implement histogram for density values.
+- [] Implement threshold selection based on density values.
+- [] Implement average intensity shader.
 
 This repository is an extension of (https://github.com/Cryt1c/opengl_rs). Original README.md:
 
