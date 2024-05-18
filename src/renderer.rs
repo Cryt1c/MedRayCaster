@@ -9,6 +9,7 @@ use std::{mem, sync::Arc};
 pub struct Renderer {
     start_time: std::time::Instant,
     frame_count: u32,
+    fps: f64,
     pub gl_glow: Arc<glow::Context>,
     pub vbo: Option<NativeBuffer>,
     pub vao: Option<NativeVertexArray>,
@@ -32,13 +33,14 @@ impl Renderer {
             .expect("You need to run eframe with the glow backend");
 
         let mut renderer = Renderer {
+            start_time: std::time::Instant::now(),
+            frame_count: 0,
+            fps: 0.0,
             gl_glow: gl.clone(),
             vao: None,
             vbo: None,
             ebo: None,
             texture: None,
-            frame_count: 0,
-            start_time: std::time::Instant::now(),
             volume: Volume::new(),
             mip_shader: false,
             camera_x: 0.0,
@@ -159,14 +161,30 @@ impl Renderer {
             .show(ui, |plot_ui| plot_ui.bar_chart(chart))
             .response
     }
+    pub fn update_frames_per_second(&mut self) -> () {
+        let now = std::time::Instant::now();
+        let elapsed = now - self.start_time;
+        if elapsed.as_secs() > 0 {
+            let fps = self.frame_count as f64 / elapsed.as_secs_f64();
+            println!("FPS: {}", fps);
+            self.frame_count = 0;
+            self.start_time = now;
+            self.fps = fps;
+        }
+        self.frame_count += 1;
+    }
 }
 
 impl eframe::App for Renderer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.update_frames_per_second();
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 10.0;
-                ui.checkbox(&mut self.mip_shader, "MIP shader");
+                ui.vertical(|ui| {
+                    ui.checkbox(&mut self.mip_shader, "MIP shader");
+                    ui.label(format!("FPS: {:.2}", self.fps));
+                });
                 ui.vertical(|ui| {
                     ui.add(egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Camera X"));
                     ui.add(egui::Slider::new(&mut self.camera_y, -2.5..=2.5).text("Camera Y"));
@@ -288,15 +306,5 @@ impl eframe::App for Renderer {
             });
         });
         ctx.request_repaint();
-
-        self.frame_count += 1;
-        let now = std::time::Instant::now();
-        let elapsed = now - self.start_time;
-        if elapsed.as_secs() > 0 {
-            let fps = self.frame_count as f64 / elapsed.as_secs_f64();
-            println!("FPS: {}", fps);
-            self.frame_count = 0;
-            self.start_time = now;
-        }
     }
 }
