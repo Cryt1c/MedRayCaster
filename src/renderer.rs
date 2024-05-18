@@ -137,31 +137,25 @@ impl Renderer {
             self.gl_glow.generate_mipmap(glow::TEXTURE_3D);
         }
     }
-    fn plot_histogram(ui: &mut Ui) -> Response {
-        let mut chart = BarChart::new(
-            (-395..=395)
-                .step_by(10)
-                .map(|x| x as f64 * 0.01)
-                .map(|x| {
-                    (
-                        x,
-                        (-x * x / 2.0).exp() / (2.0 * std::f64::consts::PI).sqrt(),
-                    )
-                })
-                // The 10 factor here is purely for a nice 1:1 aspect ratio
-                .map(|(x, f)| Bar::new(x, f * 10.0).width(0.095))
-                .collect(),
-        )
-        .color(Color32::LIGHT_BLUE)
-        .name("Normal Distribution");
+    fn plot_histogram(&self, ui: &mut Ui) -> Response {
+        let bars = self
+            .volume
+            .histogram
+            .iter()
+            .enumerate()
+            .map(|(x, index)| {
+                println!("{:?}", (x, index));
+                Bar::new(*index as f64, x as f64)
+            })
+            .collect();
+        let chart = BarChart::new(bars).color(Color32::LIGHT_BLUE);
 
-        Plot::new("Normal Distribution Demo")
+        Plot::new("Histogram")
             .legend(Legend::default())
             .clamp_grid(true)
-            .y_axis_width(3)
-            .allow_zoom(true)
-            .allow_drag(true)
-            .allow_scroll(true)
+            .allow_zoom(false)
+            .allow_drag(false)
+            .allow_scroll(false)
             .show(ui, |plot_ui| plot_ui.bar_chart(chart))
             .response
     }
@@ -183,7 +177,7 @@ impl eframe::App for Renderer {
                     ui.add(egui::Slider::new(&mut self.rotation_y, 0.0..=360.0).text("Rotation Y"));
                     ui.add(egui::Slider::new(&mut self.rotation_z, 0.0..=360.0).text("Rotation Z"));
                 });
-                Self::plot_histogram(ui);
+                self.plot_histogram(ui);
             });
             if ctx.input(|i| i.zoom_delta() != 1.0) {
                 self.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
