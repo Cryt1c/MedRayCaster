@@ -145,10 +145,7 @@ impl Renderer {
             .histogram
             .iter()
             .enumerate()
-            .map(|(x, index)| {
-                println!("{:?}", (x, index));
-                Bar::new(*index as f64, x as f64)
-            })
+            .map(|(x, index)| Bar::new(*index as f64, x as f64))
             .collect();
         let chart = BarChart::new(bars).color(Color32::LIGHT_BLUE);
 
