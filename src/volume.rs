@@ -150,6 +150,16 @@ impl Volume {
 
         dimensions
     }
+
+    pub fn calculate_histogram(texture_data: Vec<u8>) -> Vec<u32> {
+        let mut histogram = vec![0; 256];
+
+        texture_data.iter().for_each(|&value| {
+            histogram[value as usize] += 1;
+        });
+
+        histogram
+    }
 }
 
 #[cfg(test)]
@@ -177,6 +187,18 @@ mod test {
             depth: 333,
         };
         let result = Volume::parse_meta_data_dim(input);
+
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_histogram_calculation() {
+        let input: Vec<u8> = vec![0, 0, 0, 128, 128, 128, 255, 255, 255];
+        let mut expected: Vec<u32> = vec![0; 256];
+        expected[0] = 3;
+        expected[128] = 3;
+        expected[255] = 3;
+        let result = Volume::calculate_histogram(input);
 
         assert_eq!(expected, result);
     }
