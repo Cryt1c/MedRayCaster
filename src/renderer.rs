@@ -1,5 +1,7 @@
 use crate::shader::Shader;
 use crate::volume::Volume;
+use egui::{Color32, Response, Ui};
+use egui_plot::{Bar, BarChart, Legend, Plot};
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 use nalgebra::{Matrix4, Vector3};
 use std::{mem, sync::Arc};
@@ -135,6 +137,34 @@ impl Renderer {
             self.gl_glow.generate_mipmap(glow::TEXTURE_3D);
         }
     }
+    fn plot_histogram(ui: &mut Ui) -> Response {
+        let mut chart = BarChart::new(
+            (-395..=395)
+                .step_by(10)
+                .map(|x| x as f64 * 0.01)
+                .map(|x| {
+                    (
+                        x,
+                        (-x * x / 2.0).exp() / (2.0 * std::f64::consts::PI).sqrt(),
+                    )
+                })
+                // The 10 factor here is purely for a nice 1:1 aspect ratio
+                .map(|(x, f)| Bar::new(x, f * 10.0).width(0.095))
+                .collect(),
+        )
+        .color(Color32::LIGHT_BLUE)
+        .name("Normal Distribution");
+
+        Plot::new("Normal Distribution Demo")
+            .legend(Legend::default())
+            .clamp_grid(true)
+            .y_axis_width(3)
+            .allow_zoom(true)
+            .allow_drag(true)
+            .allow_scroll(true)
+            .show(ui, |plot_ui| plot_ui.bar_chart(chart))
+            .response
+    }
 }
 
 impl eframe::App for Renderer {
@@ -152,7 +182,8 @@ impl eframe::App for Renderer {
                     ui.add(egui::Slider::new(&mut self.rotation_x, 0.0..=360.0).text("Rotation X"));
                     ui.add(egui::Slider::new(&mut self.rotation_y, 0.0..=360.0).text("Rotation Y"));
                     ui.add(egui::Slider::new(&mut self.rotation_z, 0.0..=360.0).text("Rotation Z"));
-                })
+                });
+                Self::plot_histogram(ui);
             });
             if ctx.input(|i| i.zoom_delta() != 1.0) {
                 self.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
