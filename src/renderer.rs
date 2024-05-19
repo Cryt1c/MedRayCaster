@@ -213,8 +213,15 @@ impl eframe::App for Renderer {
                 ..Style::default()
             })
             .show(ui, |ui| {
+                let available_width = ui.available_width();
+                let available_height = ui.available_height();
+                let available_size = if available_width > available_height {
+                    available_height
+                } else {
+                    available_width
+                };
                 let (rect, _) = ui.allocate_exact_size(
-                    egui::Vec2::new(ctx.screen_rect().width(), ctx.screen_rect().height()),
+                    egui::Vec2::new(available_size, available_size),
                     egui::Sense::drag(),
                 );
 
@@ -229,7 +236,6 @@ impl eframe::App for Renderer {
                 let rotation_x = self.rotation_x;
                 let rotation_y = self.rotation_y;
                 let rotation_z = self.rotation_z;
-                let screen_rect = ctx.screen_rect();
                 let lower_threshold = self.lower_threshold;
                 let upper_threshold = self.upper_threshold;
 
@@ -264,8 +270,6 @@ impl eframe::App for Renderer {
                                 shaders.use_program(painter.gl(), program);
 
                                 let fov_radians = 45.0_f32.to_radians();
-                                let aspect_ratio = screen_rect.width() / screen_rect.height();
-
                                 let model_matrix = Matrix4::identity();
 
                                 let mut cam_pos = Vector3::new(camera_x, camera_y, camera_z);
@@ -282,6 +286,8 @@ impl eframe::App for Renderer {
                                 up = nalgebra_glm::rotate_x_vec3(&up, rotation_x.to_radians());
                                 up = nalgebra_glm::rotate_y_vec3(&up, rotation_y.to_radians());
                                 up = nalgebra_glm::rotate_z_vec3(&up, rotation_z.to_radians());
+
+                                let aspect_ratio = rect.aspect_ratio();
 
                                 let view_matrix = nalgebra_glm::look_at(&cam_pos, &origin, &up);
 
