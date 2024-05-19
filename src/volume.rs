@@ -126,7 +126,6 @@ impl Volume {
                 Some("NDims") => {
                     let value = data.next().unwrap().parse::<i32>().unwrap();
                     // TODO: Use NDims info.
-                    println!("NDims: {}", value);
                 }
                 Some("DimSize") => {
                     let value = data
@@ -138,12 +137,10 @@ impl Volume {
                     dimensions.width = value[0];
                     dimensions.height = value[1];
                     dimensions.depth = value[2];
-                    println!("DimSize: {:?}", value);
                 }
                 Some("ElementSpacing") => {
                     let value = data.next().unwrap();
                     // TODO: Use ElementSpacing info.
-                    println!("ElementSpacing: {}", value);
                 }
                 _ => {
                     println!("Unknown field");

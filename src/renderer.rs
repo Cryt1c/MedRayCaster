@@ -167,7 +167,6 @@ impl Renderer {
         let elapsed = now - self.start_time;
         if elapsed.as_secs() > 0 {
             let fps = self.frame_count as f64 / elapsed.as_secs_f64();
-            println!("FPS: {}", fps);
             self.frame_count = 0;
             self.start_time = now;
             self.fps = fps;
@@ -183,8 +182,6 @@ impl eframe::App for Renderer {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 10.0;
                 ui.vertical(|ui| {
-                    ui.checkbox(&mut self.mip_shader, "MIP shader");
-                    ui.label(format!("FPS: {:.2}", self.fps));
                     ui.add(
                         egui::Slider::new(&mut self.lower_threshold, 0..=255)
                             .text("Lower Threshold"),
@@ -193,11 +190,13 @@ impl eframe::App for Renderer {
                         egui::Slider::new(&mut self.upper_threshold, 0..=255)
                             .text("Upper Threshold"),
                     );
+                    ui.checkbox(&mut self.mip_shader, "MIP shader");
+                    ui.label(format!("FPS: {:.2}", self.fps));
                 });
                 ui.vertical(|ui| {
-                    ui.add(egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Camera X"));
-                    ui.add(egui::Slider::new(&mut self.camera_y, -2.5..=2.5).text("Camera Y"));
-                    ui.add(egui::Slider::new(&mut self.camera_z, -2.5..=2.5).text("Camera Z"));
+                    ui.add(egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Translation X"));
+                    ui.add(egui::Slider::new(&mut self.camera_y, -2.5..=2.5).text("Translation Y"));
+                    ui.add(egui::Slider::new(&mut self.camera_z, -2.5..=2.5).text("Translation Z"));
                 });
                 ui.vertical(|ui| {
                     ui.add(egui::Slider::new(&mut self.rotation_x, 0.0..=360.0).text("Rotation X"));
