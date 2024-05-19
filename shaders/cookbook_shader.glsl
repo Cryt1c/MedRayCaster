@@ -6,6 +6,8 @@ smooth in vec3 vUV;
 
 uniform sampler3D	volume;
 uniform vec3 camPos;
+uniform uint lower_threshold;
+uniform uint upper_threshold;
 
 const int MAX_SAMPLES = 300;	
 const vec3 texMin = vec3(0);	
@@ -27,6 +29,10 @@ void main() {
 			break;
 		
 		float sample = texture(volume, dataPos).r;	
+
+		float scaled_sample = sample * 255.0;
+		if (scaled_sample < lower_threshold || scaled_sample > upper_threshold)
+			continue;
 		
 		float prev_alpha = sample - (sample * vFragColor.a);
 		vFragColor.rgb = prev_alpha * vec3(sample) + vFragColor.rgb; 

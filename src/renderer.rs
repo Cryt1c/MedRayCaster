@@ -23,6 +23,8 @@ pub struct Renderer {
     pub rotation_x: f32,
     pub rotation_y: f32,
     pub rotation_z: f32,
+    pub lower_threshold: u8,
+    pub upper_threshold: u8,
 }
 
 impl Renderer {
@@ -49,6 +51,8 @@ impl Renderer {
             rotation_x: 0.0,
             rotation_y: 0.0,
             rotation_z: 0.0,
+            lower_threshold: 0,
+            upper_threshold: 255,
         };
         renderer.create_vao();
         renderer.create_vbo();
@@ -181,6 +185,14 @@ impl eframe::App for Renderer {
                 ui.vertical(|ui| {
                     ui.checkbox(&mut self.mip_shader, "MIP shader");
                     ui.label(format!("FPS: {:.2}", self.fps));
+                    ui.add(
+                        egui::Slider::new(&mut self.lower_threshold, 0..=255)
+                            .text("Lower Threshold"),
+                    );
+                    ui.add(
+                        egui::Slider::new(&mut self.upper_threshold, 0..=255)
+                            .text("Upper Threshold"),
+                    );
                 });
                 ui.vertical(|ui| {
                     ui.add(egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Camera X"));
@@ -215,6 +227,8 @@ impl eframe::App for Renderer {
                 let rotation_y = self.rotation_y;
                 let rotation_z = self.rotation_z;
                 let screen_rect = ctx.screen_rect();
+                let lower_threshold = self.lower_threshold;
+                let upper_threshold = self.upper_threshold;
 
                 // Prepare shaders.
                 let fragment_shader = if mip_shader {
@@ -283,6 +297,18 @@ impl eframe::App for Renderer {
                                     program,
                                     "P",
                                     projection_matrix,
+                                );
+                                Shader::set_uniform_value(
+                                    painter.gl(),
+                                    program,
+                                    "lower_threshold",
+                                    lower_threshold,
+                                );
+                                Shader::set_uniform_value(
+                                    painter.gl(),
+                                    program,
+                                    "upper_threshold",
+                                    upper_threshold,
                                 );
 
                                 painter.gl().bind_vertex_array(vao);

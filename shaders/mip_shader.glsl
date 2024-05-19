@@ -6,6 +6,8 @@ smooth in vec3 vUV;
 
 uniform sampler3D	volume;
 uniform vec3		camPos;
+uniform uint lower_threshold;
+uniform uint upper_threshold;
 
 const int MAX_SAMPLES = 2000;	
 const vec3 texMin = vec3(0);	
@@ -29,6 +31,10 @@ void main() {
 		}
 
     float sample = texture(volume, dataPos).r;
+
+		float scaled_sample = sample * 255.0;
+		if (scaled_sample < lower_threshold || scaled_sample > upper_threshold)
+			continue;
 
 		if (sample > max_value) {
 	    max_value = sample;
