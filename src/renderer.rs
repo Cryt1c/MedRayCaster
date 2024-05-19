@@ -1,6 +1,6 @@
 use crate::shader::Shader;
 use crate::volume::Volume;
-use egui::{Color32, Response, Ui};
+use egui::{Color32, Response, Style, Ui, Visuals};
 use egui_plot::{Bar, BarChart, Legend, Plot};
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 use nalgebra::{Matrix4, Vector3};
@@ -48,9 +48,9 @@ impl Renderer {
             camera_x: 0.0,
             camera_y: 0.0,
             camera_z: -2.5,
-            rotation_x: 0.0,
+            rotation_x: 90.0,
             rotation_y: 0.0,
-            rotation_z: 0.0,
+            rotation_z: 180.0,
             lower_threshold: 0,
             upper_threshold: 255,
         };
@@ -208,7 +208,11 @@ impl eframe::App for Renderer {
             if ctx.input(|i| i.zoom_delta() != 1.0) {
                 self.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
             }
-            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+            egui::Frame::canvas(&Style {
+                visuals: Visuals::dark(),
+                ..Style::default()
+            })
+            .show(ui, |ui| {
                 let (rect, _) = ui.allocate_exact_size(
                     egui::Vec2::new(ctx.screen_rect().width(), ctx.screen_rect().height()),
                     egui::Sense::drag(),
