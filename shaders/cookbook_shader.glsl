@@ -2,43 +2,43 @@
 
 layout(location = 0) out vec4 vFragColor;
 
-smooth in vec3 vUV;		
+smooth in vec3 vUV;
 
-uniform sampler3D	volume;
-uniform vec3 camPos;
+uniform sampler3D volume;
+uniform vec3 cam_pos;
 uniform uint lower_threshold;
 uniform uint upper_threshold;
 
-const int MAX_SAMPLES = 300;	
-const vec3 texMin = vec3(0);	
-const vec3 texMax = vec3(1);	
+const int MAX_SAMPLES = 300;
+const vec3 MIN_TEX = vec3(0);
+const vec3 MAX_TEX = vec3(1);
+const float STEP_SIZE = 0.01;
 
 void main() {
-	float step_size = 0.01;
-	vec3 dataPos = vUV;
-	vec3 geomDir = normalize((vUV-vec3(0.5)) - camPos); 
-	vec3 dirStep = geomDir * step_size; 
-	bool stop = false; 
+    vec3 data_position = vUV;
+    vec3 direction = normalize((vUV - vec3(0.5)) - cam_pos);
+    vec3 dirStep = direction * STEP_SIZE;
+    bool stop = false;
 
-	for (int i = 0; i < MAX_SAMPLES; i++) {
-		dataPos = dataPos + dirStep;
-		
-		stop = dot(sign(dataPos-texMin),sign(texMax-dataPos)) < 3.0;
+    for (int i = 0; i < MAX_SAMPLES; i++) {
+        data_position += dirStep;
 
-		if (stop) 
-			break;
-		
-		float sample = texture(volume, dataPos).r;	
+        stop = dot(sign(data_position - MIN_TEX), sign(MAX_TEX - data_position)) < 3.0;
 
-		float scaled_sample = sample * 255.0;
-		if (scaled_sample < lower_threshold || scaled_sample > upper_threshold)
-			continue;
-		
-		float prev_alpha = sample - (sample * vFragColor.a);
-		vFragColor.rgb = prev_alpha * vec3(sample) + vFragColor.rgb; 
-		vFragColor.a += prev_alpha; 
-			
-		if (vFragColor.a > 0.99)
-			break;
-	} 
+        if (stop)
+            break;
+
+        float value = texture(volume, data_position).r;
+
+        float scaled_value = value * 255.0;
+        if (scaled_value < lower_threshold || scaled_value > upper_threshold)
+            continue;
+
+        float prev_alpha = value - (value * vFragColor.a);
+        vFragColor.rgb = prev_alpha * vec3(value) + vFragColor.rgb;
+        vFragColor.a += prev_alpha;
+
+        if (vFragColor.a > 0.99)
+            break;
+    }
 }
