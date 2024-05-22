@@ -314,7 +314,7 @@ impl eframe::App for Renderer {
                                     100.0,
                                 );
 
-                                Shader::set_uniform_value(painter.gl(), program, "camPos", cam_pos);
+                                Shader::set_uniform_value(painter.gl(), program, "cam_pos", cam_pos);
                                 Shader::set_uniform_value(painter.gl(), program, "M", model_matrix);
                                 Shader::set_uniform_value(painter.gl(), program, "V", view_matrix);
                                 Shader::set_uniform_value(
