@@ -1,4 +1,4 @@
-use crate::shader::Shader;
+use crate::shader::{Shader, ShaderType};
 use crate::volume::Volume;
 use egui::{Color32, Response, Style, Ui, Visuals};
 use egui_plot::{Bar, BarChart, Legend, Plot};
@@ -16,7 +16,7 @@ pub struct Renderer {
     pub ebo: Option<NativeBuffer>,
     pub texture: Option<NativeTexture>,
     pub volume: Volume,
-    pub mip_shader: bool,
+    pub shader_type: ShaderType,
     pub camera_x: f32,
     pub camera_y: f32,
     pub camera_z: f32,
@@ -44,7 +44,7 @@ impl Renderer {
             ebo: None,
             texture: None,
             volume: Volume::new(),
-            mip_shader: false,
+            shader_type: ShaderType::DefaultShader,
             camera_x: 0.0,
             camera_y: 0.0,
             camera_z: -2.5,
@@ -192,7 +192,9 @@ impl eframe::App for Renderer {
                             egui::Slider::new(&mut self.upper_threshold, 0..=255)
                                 .text("Upper Threshold"),
                         );
-                        ui.checkbox(&mut self.mip_shader, "MIP shader");
+                        ui.radio_value(&mut self.shader_type, ShaderType::DefaultShader, "Default shader");
+                        ui.radio_value(&mut self.shader_type, ShaderType::MipShader, "MIP shader");
+                        ui.radio_value(&mut self.shader_type, ShaderType::AipShader, "AIP shader");
                         ui.label(format!("FPS: {:.2}", self.fps));
                     });
                     ui.vertical(|ui| {
@@ -244,7 +246,6 @@ impl eframe::App for Renderer {
                 let texture = self.texture;
                 let vao = self.vao;
                 let indices_length = self.volume.indices.len();
-                let mip_shader = self.mip_shader;
                 let camera_x = self.camera_x;
                 let camera_y = self.camera_y;
                 let camera_z = self.camera_z;
@@ -254,12 +255,12 @@ impl eframe::App for Renderer {
                 let lower_threshold = self.lower_threshold;
                 let upper_threshold = self.upper_threshold;
 
-                // Prepare shaders.
-                let fragment_shader = if mip_shader {
-                    "shaders/mip_shader.glsl"
-                } else {
-                    "shaders/cookbook_shader.glsl"
+                let fragment_shader = match self.shader_type {
+                    ShaderType::DefaultShader => "shaders/cookbook_shader.glsl",
+                    ShaderType::MipShader => "shaders/mip_shader.glsl",
+                    ShaderType::AipShader => "shaders/aip_shader.glsl",
                 };
+
                 let shaders = Shader::load_from_file("shaders/vertex_shader.glsl", fragment_shader);
 
                 let callback = egui::PaintCallback {

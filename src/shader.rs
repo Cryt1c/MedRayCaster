@@ -7,6 +7,13 @@ pub struct Shader {
     fragment: String,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum ShaderType {
+    DefaultShader,
+    MipShader,
+    AipShader,
+}
+
 impl Shader {
     pub fn load_from_file(vertex_path: &str, fragment_path: &str) -> Shader {
         Shader {

@@ -9,7 +9,7 @@ TODO:
 - [x] Correct model positioning in world view (possible using camera controls).
 - [x] Implement histogram for density values.
 - [x] Implement threshold selection based on density values.
-- [] Implement average intensity shader.
+- [x] Implement average intensity shader.
 
 This repository is an extension of (https://github.com/Cryt1c/opengl_rs). Original README.md:
 
