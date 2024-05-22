@@ -108,7 +108,7 @@ impl Volume {
 
     pub fn normalize_hounsfield_units(value: u16) -> u8 {
         let hu_value = value & 0x0FFF; // Use only the lower 12 bits
-        let normalized_hu_value = (hu_value as f32 / 4095.0) * 256.0; // Normalize to [0, 256]
+        let normalized_hu_value = (hu_value as f32 / 4095.0) * 255.0; // Normalize to [0, 255]
         normalized_hu_value as u8
     }
 

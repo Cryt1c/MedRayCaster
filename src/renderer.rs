@@ -149,7 +149,7 @@ impl Renderer {
             .histogram
             .iter()
             .enumerate()
-            .map(|(x, index)| Bar::new(*index as f64, x as f64))
+            .map(|(x, index)| Bar::new(x as f64, *index as f64))
             .collect();
         let chart = BarChart::new(bars).color(Color32::LIGHT_BLUE);
 
@@ -159,6 +159,7 @@ impl Renderer {
             .allow_zoom(false)
             .allow_drag(false)
             .allow_scroll(false)
+            .height(200.0)
             .show(ui, |plot_ui| plot_ui.bar_chart(chart))
             .response
     }
@@ -179,29 +180,43 @@ impl eframe::App for Renderer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.update_frames_per_second();
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = 10.0;
-                ui.vertical(|ui| {
-                    ui.add(
-                        egui::Slider::new(&mut self.lower_threshold, 0..=255)
-                            .text("Lower Threshold"),
-                    );
-                    ui.add(
-                        egui::Slider::new(&mut self.upper_threshold, 0..=255)
-                            .text("Upper Threshold"),
-                    );
-                    ui.checkbox(&mut self.mip_shader, "MIP shader");
-                    ui.label(format!("FPS: {:.2}", self.fps));
-                });
-                ui.vertical(|ui| {
-                    ui.add(egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Translation X"));
-                    ui.add(egui::Slider::new(&mut self.camera_y, -2.5..=2.5).text("Translation Y"));
-                    ui.add(egui::Slider::new(&mut self.camera_z, -2.5..=2.5).text("Translation Z"));
-                });
-                ui.vertical(|ui| {
-                    ui.add(egui::Slider::new(&mut self.rotation_x, 0.0..=360.0).text("Rotation X"));
-                    ui.add(egui::Slider::new(&mut self.rotation_y, 0.0..=360.0).text("Rotation Y"));
-                    ui.add(egui::Slider::new(&mut self.rotation_z, 0.0..=360.0).text("Rotation Z"));
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 10.0;
+                    ui.vertical(|ui| {
+                        ui.add(
+                            egui::Slider::new(&mut self.lower_threshold, 0..=255)
+                                .text("Lower Threshold"),
+                        );
+                        ui.add(
+                            egui::Slider::new(&mut self.upper_threshold, 0..=255)
+                                .text("Upper Threshold"),
+                        );
+                        ui.checkbox(&mut self.mip_shader, "MIP shader");
+                        ui.label(format!("FPS: {:.2}", self.fps));
+                    });
+                    ui.vertical(|ui| {
+                        ui.add(
+                            egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Translation X"),
+                        );
+                        ui.add(
+                            egui::Slider::new(&mut self.camera_y, -2.5..=2.5).text("Translation Y"),
+                        );
+                        ui.add(
+                            egui::Slider::new(&mut self.camera_z, -2.5..=2.5).text("Translation Z"),
+                        );
+                    });
+                    ui.vertical(|ui| {
+                        ui.add(
+                            egui::Slider::new(&mut self.rotation_x, 0.0..=360.0).text("Rotation X"),
+                        );
+                        ui.add(
+                            egui::Slider::new(&mut self.rotation_y, 0.0..=360.0).text("Rotation Y"),
+                        );
+                        ui.add(
+                            egui::Slider::new(&mut self.rotation_z, 0.0..=360.0).text("Rotation Z"),
+                        );
+                    });
                 });
                 self.plot_histogram(ui);
             });
