@@ -124,7 +124,7 @@ impl Volume {
 
             match data.next() {
                 Some("NDims") => {
-                    let value = data.next().unwrap().parse::<i32>().unwrap();
+                    let _value = data.next().unwrap().parse::<i32>().unwrap();
                     // TODO: Use NDims info.
                 }
                 Some("DimSize") => {
@@ -139,7 +139,7 @@ impl Volume {
                     dimensions.depth = value[2];
                 }
                 Some("ElementSpacing") => {
-                    let value = data.next().unwrap();
+                    let _value = data.next().unwrap();
                     // TODO: Use ElementSpacing info.
                 }
                 _ => {
