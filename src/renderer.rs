@@ -1,30 +1,23 @@
 use crate::shader::{Shader, ShaderType};
 use crate::volume::Volume;
-use egui::{Color32, Response, Style, Ui, Visuals};
-use egui_plot::{Bar, BarChart, Legend, Plot};
+use crate::ui::UserInterface;
+use crate::ui::FrameTimer;
+use crate::ui::Camera;
+use egui::{Style, Visuals};
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 use nalgebra::{Matrix4, Vector3};
 use std::{mem, sync::Arc};
 
 pub struct Renderer {
-    start_time: std::time::Instant,
-    frame_count: u32,
-    fps: f64,
     pub gl_glow: Arc<glow::Context>,
     pub vbo: Option<NativeBuffer>,
     pub vao: Option<NativeVertexArray>,
     pub ebo: Option<NativeBuffer>,
     pub texture: Option<NativeTexture>,
     pub volume: Volume,
+    pub camera: Camera,
     pub shader_type: ShaderType,
-    pub camera_x: f32,
-    pub camera_y: f32,
-    pub camera_z: f32,
-    pub rotation_x: f32,
-    pub rotation_y: f32,
-    pub rotation_z: f32,
-    pub lower_threshold: u8,
-    pub upper_threshold: u8,
+    pub ui: UserInterface,
 }
 
 impl Renderer {
@@ -34,10 +27,28 @@ impl Renderer {
             .as_ref()
             .expect("You need to run eframe with the glow backend");
 
-        let mut renderer = Renderer {
+        let frame_timer = FrameTimer {
             start_time: std::time::Instant::now(),
             frame_count: 0,
             fps: 0.0,
+        };
+
+        let camera = Camera {
+            camera_x: 0.0,
+            camera_y: 0.0,
+            camera_z: -2.5,
+            rotation_x: 90.0,
+            rotation_y: 0.0,
+            rotation_z: 180.0,
+        };
+
+        let ui = UserInterface {
+            frame_timer,
+            lower_threshold: 0,
+            upper_threshold: 255,
+        };
+
+        let mut renderer = Renderer {
             gl_glow: gl.clone(),
             vao: None,
             vbo: None,
@@ -45,14 +56,8 @@ impl Renderer {
             texture: None,
             volume: Volume::new(),
             shader_type: ShaderType::DefaultShader,
-            camera_x: 0.0,
-            camera_y: 0.0,
-            camera_z: -2.5,
-            rotation_x: 90.0,
-            rotation_y: 0.0,
-            rotation_z: 180.0,
-            lower_threshold: 0,
-            upper_threshold: 255,
+            camera,
+            ui,
         };
         renderer.create_vao();
         renderer.create_vbo();
@@ -143,87 +148,66 @@ impl Renderer {
             self.gl_glow.generate_mipmap(glow::TEXTURE_3D);
         }
     }
-    fn plot_histogram(&self, ui: &mut Ui) -> Response {
-        let bars = self
-            .volume
-            .histogram
-            .iter()
-            .enumerate()
-            .map(|(x, index)| Bar::new(x as f64, *index as f64))
-            .collect();
-        let chart = BarChart::new(bars).color(Color32::LIGHT_BLUE);
-
-        Plot::new("Histogram")
-            .legend(Legend::default())
-            .clamp_grid(true)
-            .allow_zoom(false)
-            .allow_drag(false)
-            .allow_scroll(false)
-            .height(200.0)
-            .show(ui, |plot_ui| plot_ui.bar_chart(chart))
-            .response
-    }
-    pub fn update_frames_per_second(&mut self) -> () {
-        let now = std::time::Instant::now();
-        let elapsed = now - self.start_time;
-        if elapsed.as_secs() > 0 {
-            let fps = self.frame_count as f64 / elapsed.as_secs_f64();
-            self.frame_count = 0;
-            self.start_time = now;
-            self.fps = fps;
-        }
-        self.frame_count += 1;
-    }
 }
 
 impl eframe::App for Renderer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.update_frames_per_second();
+        self.ui.frame_timer.update_frames_per_second();
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 10.0;
                     ui.vertical(|ui| {
                         ui.add(
-                            egui::Slider::new(&mut self.lower_threshold, 0..=255)
+                            egui::Slider::new(&mut self.ui.lower_threshold, 0..=255)
                                 .text("Lower Threshold"),
                         );
                         ui.add(
-                            egui::Slider::new(&mut self.upper_threshold, 0..=255)
+                            egui::Slider::new(&mut self.ui.upper_threshold, 0..=255)
                                 .text("Upper Threshold"),
                         );
-                        ui.radio_value(&mut self.shader_type, ShaderType::DefaultShader, "Default shader");
+                        ui.radio_value(
+                            &mut self.shader_type,
+                            ShaderType::DefaultShader,
+                            "Default shader",
+                        );
                         ui.radio_value(&mut self.shader_type, ShaderType::MipShader, "MIP shader");
                         ui.radio_value(&mut self.shader_type, ShaderType::AipShader, "AIP shader");
-                        ui.label(format!("FPS: {:.2}", self.fps));
+                        ui.label(format!("FPS: {:.2}", self.ui.frame_timer.fps));
                     });
                     ui.vertical(|ui| {
                         ui.add(
-                            egui::Slider::new(&mut self.camera_x, -2.5..=2.5).text("Translation X"),
+                            egui::Slider::new(&mut self.camera.camera_x, -2.5..=2.5)
+                                .text("Translation X"),
                         );
                         ui.add(
-                            egui::Slider::new(&mut self.camera_y, -2.5..=2.5).text("Translation Y"),
+                            egui::Slider::new(&mut self.camera.camera_y, -2.5..=2.5)
+                                .text("Translation Y"),
                         );
                         ui.add(
-                            egui::Slider::new(&mut self.camera_z, -2.5..=2.5).text("Translation Z"),
+                            egui::Slider::new(&mut self.camera.camera_z, -2.5..=2.5)
+                                .text("Translation Z"),
                         );
                     });
                     ui.vertical(|ui| {
                         ui.add(
-                            egui::Slider::new(&mut self.rotation_x, 0.0..=360.0).text("Rotation X"),
+                            egui::Slider::new(&mut self.camera.rotation_x, 0.0..=360.0)
+                                .text("Rotation X"),
                         );
                         ui.add(
-                            egui::Slider::new(&mut self.rotation_y, 0.0..=360.0).text("Rotation Y"),
+                            egui::Slider::new(&mut self.camera.rotation_y, 0.0..=360.0)
+                                .text("Rotation Y"),
                         );
                         ui.add(
-                            egui::Slider::new(&mut self.rotation_z, 0.0..=360.0).text("Rotation Z"),
+                            egui::Slider::new(&mut self.camera.rotation_z, 0.0..=360.0)
+                                .text("Rotation Z"),
                         );
                     });
                 });
-                self.plot_histogram(ui);
+                UserInterface::plot_histogram(ui, &self.volume);
             });
             if ctx.input(|i| i.zoom_delta() != 1.0) {
-                self.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
+                self.camera.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
             }
             egui::Frame::canvas(&Style {
                 visuals: Visuals::dark(),
@@ -246,14 +230,15 @@ impl eframe::App for Renderer {
                 let texture = self.texture;
                 let vao = self.vao;
                 let indices_length = self.volume.indices.len();
-                let camera_x = self.camera_x;
-                let camera_y = self.camera_y;
-                let camera_z = self.camera_z;
-                let rotation_x = self.rotation_x;
-                let rotation_y = self.rotation_y;
-                let rotation_z = self.rotation_z;
-                let lower_threshold = self.lower_threshold;
-                let upper_threshold = self.upper_threshold;
+                let camera = &self.camera;
+                let camera_x = camera.camera_x;
+                let camera_y = camera.camera_y;
+                let camera_z = camera.camera_z;
+                let rotation_x = camera.rotation_x;
+                let rotation_y = camera.rotation_y;
+                let rotation_z = camera.rotation_z;
+                let lower_threshold = self.ui.lower_threshold;
+                let upper_threshold = self.ui.upper_threshold;
 
                 let fragment_shader = match self.shader_type {
                     ShaderType::DefaultShader => "shaders/cookbook_shader.glsl",
@@ -314,7 +299,12 @@ impl eframe::App for Renderer {
                                     100.0,
                                 );
 
-                                Shader::set_uniform_value(painter.gl(), program, "cam_pos", cam_pos);
+                                Shader::set_uniform_value(
+                                    painter.gl(),
+                                    program,
+                                    "cam_pos",
+                                    cam_pos,
+                                );
                                 Shader::set_uniform_value(painter.gl(), program, "M", model_matrix);
                                 Shader::set_uniform_value(painter.gl(), program, "V", view_matrix);
                                 Shader::set_uniform_value(
