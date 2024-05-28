@@ -26,6 +26,7 @@ pub struct Scene {
 }
 
 pub struct Camera {
+    pub aspect_ratio: f32,
     pub camera_x: f32,
     pub camera_y: f32,
     pub camera_z: f32,
@@ -48,6 +49,7 @@ impl Renderer {
         };
 
         let camera = Camera {
+            aspect_ratio: 1.0,
             camera_x: 0.0,
             camera_y: 0.0,
             camera_z: -2.5,
@@ -162,6 +164,81 @@ impl Renderer {
             self.gl_glow.generate_mipmap(glow::TEXTURE_3D);
         }
     }
+
+    fn calculate_cam_pos(&self) -> Vector3<f32> {
+        let mut cam_pos = Vector3::new(
+            self.scene.camera.camera_x,
+            self.scene.camera.camera_y,
+            self.scene.camera.camera_z,
+        );
+        cam_pos = nalgebra_glm::rotate_x_vec3(&cam_pos, self.scene.camera.rotation_x.to_radians());
+        cam_pos = nalgebra_glm::rotate_y_vec3(&cam_pos, self.scene.camera.rotation_y.to_radians());
+        cam_pos = nalgebra_glm::rotate_z_vec3(&cam_pos, self.scene.camera.rotation_z.to_radians());
+        cam_pos
+    }
+
+    fn calculate_model_matrix(&self) -> Matrix4<f32> {
+        Matrix4::identity()
+    }
+
+    fn calculate_view_matrix(&self, cam_pos: Vector3<f32>) -> Matrix4<f32> {
+        let mut up = Vector3::new(0.0, 1.0, 0.0);
+        up = nalgebra_glm::rotate_x_vec3(&up, self.scene.camera.rotation_x.to_radians());
+        up = nalgebra_glm::rotate_y_vec3(&up, self.scene.camera.rotation_y.to_radians());
+        up = nalgebra_glm::rotate_z_vec3(&up, self.scene.camera.rotation_z.to_radians());
+        let origin = Vector3::new(0.0, 0.0, 0.0);
+        nalgebra_glm::look_at(&cam_pos, &origin, &up)
+    }
+
+    fn calculate_projection_matrix(&self) -> Matrix4<f32> {
+        let fov_radians = 45.0_f32.to_radians();
+        let aspect_ratio = self.scene.camera.aspect_ratio;
+        nalgebra_glm::perspective(fov_radians, aspect_ratio, 0.1, 100.0)
+    }
+
+    pub fn calculate_uniforms(&self) -> Uniforms {
+        let cam_pos = self.calculate_cam_pos();
+        Uniforms {
+            cam_pos,
+            model_matrix: self.calculate_model_matrix(),
+            view_matrix: self.calculate_view_matrix(cam_pos),
+            projection_matrix: self.calculate_projection_matrix(),
+            lower_threshold: self.scene.lower_threshold,
+            upper_threshold: self.scene.upper_threshold,
+        }
+    }
+
+    pub fn set_uniform_values(
+        uniforms: &Uniforms,
+        painter: &egui_glow::Painter,
+        program: glow::NativeProgram,
+    ) {
+        Shader::set_uniform_value(painter.gl(), program, "cam_pos", uniforms.cam_pos);
+        Shader::set_uniform_value(painter.gl(), program, "M", uniforms.model_matrix);
+        Shader::set_uniform_value(painter.gl(), program, "V", uniforms.view_matrix);
+        Shader::set_uniform_value(painter.gl(), program, "P", uniforms.projection_matrix);
+        Shader::set_uniform_value(
+            painter.gl(),
+            program,
+            "lower_threshold",
+            uniforms.lower_threshold,
+        );
+        Shader::set_uniform_value(
+            painter.gl(),
+            program,
+            "upper_threshold",
+            uniforms.upper_threshold,
+        );
+    }
+}
+
+pub struct Uniforms {
+    pub cam_pos: Vector3<f32>,
+    pub model_matrix: Matrix4<f32>,
+    pub view_matrix: Matrix4<f32>,
+    pub projection_matrix: Matrix4<f32>,
+    pub lower_threshold: u8,
+    pub upper_threshold: u8,
 }
 
 impl eframe::App for Renderer {
@@ -191,20 +268,13 @@ impl eframe::App for Renderer {
                     egui::Vec2::new(available_size, available_size),
                     egui::Sense::drag(),
                 );
+                self.scene.camera.aspect_ratio = rect.aspect_ratio();
 
                 // Create local variables to ensure thread safety.
                 let texture = self.texture;
                 let vao = self.vao;
                 let indices_length = self.scene.volume.indices.len();
-                let camera = &self.scene.camera;
-                let camera_x = camera.camera_x;
-                let camera_y = camera.camera_y;
-                let camera_z = camera.camera_z;
-                let rotation_x = camera.rotation_x;
-                let rotation_y = camera.rotation_y;
-                let rotation_z = camera.rotation_z;
-                let lower_threshold = self.scene.lower_threshold;
-                let upper_threshold = self.scene.upper_threshold;
+                let uniforms = self.calculate_uniforms();
 
                 let fragment_shader = match self.scene.shader_type {
                     ShaderType::DefaultShader => "shaders/cookbook_shader.glsl",
@@ -231,67 +301,11 @@ impl eframe::App for Renderer {
                             let program = shaders.link_program(painter.gl(), vs, fs);
                             shaders.delete_shader(painter.gl(), vs);
                             shaders.delete_shader(painter.gl(), fs);
+                            shaders.use_program(painter.gl(), program);
+                            Renderer::set_uniform_values(&uniforms, &painter, program);
 
                             unsafe {
                                 painter.gl().bind_texture(glow::TEXTURE_3D, texture);
-                                shaders.use_program(painter.gl(), program);
-
-                                let fov_radians = 45.0_f32.to_radians();
-                                let model_matrix = Matrix4::identity();
-
-                                let mut cam_pos = Vector3::new(camera_x, camera_y, camera_z);
-                                let mut up = Vector3::new(0.0, 1.0, 0.0);
-                                let origin = Vector3::new(0.0, 0.0, 0.0);
-
-                                cam_pos =
-                                    nalgebra_glm::rotate_x_vec3(&cam_pos, rotation_x.to_radians());
-                                cam_pos =
-                                    nalgebra_glm::rotate_y_vec3(&cam_pos, rotation_y.to_radians());
-                                cam_pos =
-                                    nalgebra_glm::rotate_z_vec3(&cam_pos, rotation_z.to_radians());
-
-                                up = nalgebra_glm::rotate_x_vec3(&up, rotation_x.to_radians());
-                                up = nalgebra_glm::rotate_y_vec3(&up, rotation_y.to_radians());
-                                up = nalgebra_glm::rotate_z_vec3(&up, rotation_z.to_radians());
-
-                                let aspect_ratio = rect.aspect_ratio();
-
-                                let view_matrix = nalgebra_glm::look_at(&cam_pos, &origin, &up);
-
-                                let projection_matrix = nalgebra_glm::perspective(
-                                    fov_radians,
-                                    aspect_ratio,
-                                    0.1,
-                                    100.0,
-                                );
-
-                                Shader::set_uniform_value(
-                                    painter.gl(),
-                                    program,
-                                    "cam_pos",
-                                    cam_pos,
-                                );
-                                Shader::set_uniform_value(painter.gl(), program, "M", model_matrix);
-                                Shader::set_uniform_value(painter.gl(), program, "V", view_matrix);
-                                Shader::set_uniform_value(
-                                    painter.gl(),
-                                    program,
-                                    "P",
-                                    projection_matrix,
-                                );
-                                Shader::set_uniform_value(
-                                    painter.gl(),
-                                    program,
-                                    "lower_threshold",
-                                    lower_threshold,
-                                );
-                                Shader::set_uniform_value(
-                                    painter.gl(),
-                                    program,
-                                    "upper_threshold",
-                                    upper_threshold,
-                                );
-
                                 painter.gl().bind_vertex_array(vao);
                                 painter.gl().draw_elements(
                                     glow::TRIANGLES,
