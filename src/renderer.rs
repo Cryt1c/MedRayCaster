@@ -27,12 +27,8 @@ pub struct Scene {
 
 pub struct Camera {
     pub aspect_ratio: f32,
-    pub camera_x: f32,
-    pub camera_y: f32,
-    pub camera_z: f32,
-    pub rotation_x: f32,
-    pub rotation_y: f32,
-    pub rotation_z: f32,
+    pub location: Vector3<f32>,
+    pub rotation: Vector3<f32>,
 }
 
 impl Renderer {
@@ -50,12 +46,8 @@ impl Renderer {
 
         let camera = Camera {
             aspect_ratio: 1.0,
-            camera_x: 0.0,
-            camera_y: 0.0,
-            camera_z: -2.5,
-            rotation_x: 90.0,
-            rotation_y: 0.0,
-            rotation_z: 180.0,
+            location: Vector3::new(0.0, 0.0, -2.5),
+            rotation: Vector3::new(90.0, 0.0, 180.0),
         };
 
         let mut renderer = Renderer {
@@ -167,13 +159,13 @@ impl Renderer {
 
     fn calculate_cam_pos(&self) -> Vector3<f32> {
         let mut cam_pos = Vector3::new(
-            self.scene.camera.camera_x,
-            self.scene.camera.camera_y,
-            self.scene.camera.camera_z,
+            self.scene.camera.location.x,
+            self.scene.camera.location.y,
+            self.scene.camera.location.z,
         );
-        cam_pos = nalgebra_glm::rotate_x_vec3(&cam_pos, self.scene.camera.rotation_x.to_radians());
-        cam_pos = nalgebra_glm::rotate_y_vec3(&cam_pos, self.scene.camera.rotation_y.to_radians());
-        cam_pos = nalgebra_glm::rotate_z_vec3(&cam_pos, self.scene.camera.rotation_z.to_radians());
+        cam_pos = nalgebra_glm::rotate_x_vec3(&cam_pos, self.scene.camera.rotation.x.to_radians());
+        cam_pos = nalgebra_glm::rotate_y_vec3(&cam_pos, self.scene.camera.rotation.y.to_radians());
+        cam_pos = nalgebra_glm::rotate_z_vec3(&cam_pos, self.scene.camera.rotation.z.to_radians());
         cam_pos
     }
 
@@ -183,9 +175,9 @@ impl Renderer {
 
     fn calculate_view_matrix(&self, cam_pos: Vector3<f32>) -> Matrix4<f32> {
         let mut up = Vector3::new(0.0, 1.0, 0.0);
-        up = nalgebra_glm::rotate_x_vec3(&up, self.scene.camera.rotation_x.to_radians());
-        up = nalgebra_glm::rotate_y_vec3(&up, self.scene.camera.rotation_y.to_radians());
-        up = nalgebra_glm::rotate_z_vec3(&up, self.scene.camera.rotation_z.to_radians());
+        up = nalgebra_glm::rotate_x_vec3(&up, self.scene.camera.rotation.x.to_radians());
+        up = nalgebra_glm::rotate_y_vec3(&up, self.scene.camera.rotation.y.to_radians());
+        up = nalgebra_glm::rotate_z_vec3(&up, self.scene.camera.rotation.z.to_radians());
         let origin = Vector3::new(0.0, 0.0, 0.0);
         nalgebra_glm::look_at(&cam_pos, &origin, &up)
     }
@@ -250,7 +242,7 @@ impl eframe::App for Renderer {
                 UserInterface::render_histogram(ui, &self.scene.volume);
             });
             if ctx.input(|i| i.zoom_delta() != 1.0) {
-                self.scene.camera.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
+                self.scene.camera.location.z += ctx.input(|i| (i.zoom_delta() - 1.0));
             }
             egui::Frame::canvas(&Style {
                 visuals: Visuals::dark(),

@@ -52,24 +52,27 @@ impl UserInterface {
             });
             ui.vertical(|ui| {
                 ui.add(
-                    egui::Slider::new(&mut scene.camera.camera_x, -2.5..=2.5).text("Translation X"),
+                    egui::Slider::new(&mut scene.camera.location.x, -2.5..=2.5)
+                        .text("Translation X"),
                 );
                 ui.add(
-                    egui::Slider::new(&mut scene.camera.camera_y, -2.5..=2.5).text("Translation Y"),
+                    egui::Slider::new(&mut scene.camera.location.y, -2.5..=2.5)
+                        .text("Translation Y"),
                 );
                 ui.add(
-                    egui::Slider::new(&mut scene.camera.camera_z, -2.5..=2.5).text("Translation Z"),
+                    egui::Slider::new(&mut scene.camera.location.z, -2.5..=2.5)
+                        .text("Translation Z"),
                 );
             });
             ui.vertical(|ui| {
                 ui.add(
-                    egui::Slider::new(&mut scene.camera.rotation_x, 0.0..=360.0).text("Rotation X"),
+                    egui::Slider::new(&mut scene.camera.rotation.x, 0.0..=360.0).text("Rotation X"),
                 );
                 ui.add(
-                    egui::Slider::new(&mut scene.camera.rotation_y, 0.0..=360.0).text("Rotation Y"),
+                    egui::Slider::new(&mut scene.camera.rotation.y, 0.0..=360.0).text("Rotation Y"),
                 );
                 ui.add(
-                    egui::Slider::new(&mut scene.camera.rotation_z, 0.0..=360.0).text("Rotation Z"),
+                    egui::Slider::new(&mut scene.camera.rotation.z, 0.0..=360.0).text("Rotation Z"),
                 );
             });
         });
