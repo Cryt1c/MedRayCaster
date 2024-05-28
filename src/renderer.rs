@@ -31,6 +31,15 @@ pub struct Camera {
     pub rotation: Vector3<f32>,
 }
 
+pub struct Uniforms {
+    pub cam_pos: Vector3<f32>,
+    pub model_matrix: Matrix4<f32>,
+    pub view_matrix: Matrix4<f32>,
+    pub projection_matrix: Matrix4<f32>,
+    pub lower_threshold: u8,
+    pub upper_threshold: u8,
+}
+
 impl Renderer {
     pub fn new(creation_context: &eframe::CreationContext<'_>) -> Self {
         let gl = creation_context
@@ -157,18 +166,6 @@ impl Renderer {
         }
     }
 
-    fn calculate_cam_pos(&self) -> Vector3<f32> {
-        let mut cam_pos = Vector3::new(
-            self.scene.camera.location.x,
-            self.scene.camera.location.y,
-            self.scene.camera.location.z,
-        );
-        cam_pos = nalgebra_glm::rotate_x_vec3(&cam_pos, self.scene.camera.rotation.x.to_radians());
-        cam_pos = nalgebra_glm::rotate_y_vec3(&cam_pos, self.scene.camera.rotation.y.to_radians());
-        cam_pos = nalgebra_glm::rotate_z_vec3(&cam_pos, self.scene.camera.rotation.z.to_radians());
-        cam_pos
-    }
-
     fn calculate_model_matrix(&self) -> Matrix4<f32> {
         Matrix4::identity()
     }
@@ -189,7 +186,7 @@ impl Renderer {
     }
 
     pub fn calculate_uniforms(&self) -> Uniforms {
-        let cam_pos = self.calculate_cam_pos();
+        let cam_pos = self.scene.camera.calculate_cam_pos();
         Uniforms {
             cam_pos,
             model_matrix: self.calculate_model_matrix(),
@@ -224,13 +221,14 @@ impl Renderer {
     }
 }
 
-pub struct Uniforms {
-    pub cam_pos: Vector3<f32>,
-    pub model_matrix: Matrix4<f32>,
-    pub view_matrix: Matrix4<f32>,
-    pub projection_matrix: Matrix4<f32>,
-    pub lower_threshold: u8,
-    pub upper_threshold: u8,
+impl Camera {
+    pub fn calculate_cam_pos(&self) -> Vector3<f32> {
+        let mut cam_pos = Vector3::new(self.location.x, self.location.y, self.location.z);
+        cam_pos = nalgebra_glm::rotate_x_vec3(&cam_pos, self.rotation.x.to_radians());
+        cam_pos = nalgebra_glm::rotate_y_vec3(&cam_pos, self.rotation.y.to_radians());
+        cam_pos = nalgebra_glm::rotate_z_vec3(&cam_pos, self.rotation.z.to_radians());
+        cam_pos
+    }
 }
 
 impl eframe::App for Renderer {
