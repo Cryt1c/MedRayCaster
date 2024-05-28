@@ -1,8 +1,7 @@
 use crate::shader::{Shader, ShaderType};
-use crate::volume::Volume;
-use crate::ui::UserInterface;
 use crate::ui::FrameTimer;
-use crate::ui::Camera;
+use crate::ui::UserInterface;
+use crate::volume::Volume;
 use egui::{Style, Visuals};
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 use nalgebra::{Matrix4, Vector3};
@@ -14,10 +13,25 @@ pub struct Renderer {
     pub vao: Option<NativeVertexArray>,
     pub ebo: Option<NativeBuffer>,
     pub texture: Option<NativeTexture>,
+    pub scene: Scene,
+}
+
+pub struct Scene {
     pub volume: Volume,
     pub camera: Camera,
     pub shader_type: ShaderType,
-    pub ui: UserInterface,
+    pub lower_threshold: u8,
+    pub upper_threshold: u8,
+    pub frame_timer: FrameTimer,
+}
+
+pub struct Camera {
+    pub camera_x: f32,
+    pub camera_y: f32,
+    pub camera_z: f32,
+    pub rotation_x: f32,
+    pub rotation_y: f32,
+    pub rotation_z: f32,
 }
 
 impl Renderer {
@@ -42,22 +56,20 @@ impl Renderer {
             rotation_z: 180.0,
         };
 
-        let ui = UserInterface {
-            frame_timer,
-            lower_threshold: 0,
-            upper_threshold: 255,
-        };
-
         let mut renderer = Renderer {
             gl_glow: gl.clone(),
             vao: None,
             vbo: None,
             ebo: None,
             texture: None,
-            volume: Volume::new(),
-            shader_type: ShaderType::DefaultShader,
-            camera,
-            ui,
+            scene: Scene {
+                volume: Volume::new(),
+                camera,
+                shader_type: ShaderType::DefaultShader,
+                frame_timer,
+                lower_threshold: 0,
+                upper_threshold: 255,
+            },
         };
         renderer.create_vao();
         renderer.create_vbo();
@@ -77,7 +89,7 @@ impl Renderer {
             self.gl_glow.bind_buffer(glow::ARRAY_BUFFER, self.vbo);
             self.gl_glow.buffer_data_u8_slice(
                 glow::ARRAY_BUFFER,
-                bytemuck::cast_slice(&self.volume.vertex_data),
+                bytemuck::cast_slice(&self.scene.volume.vertex_data),
                 glow::STATIC_DRAW,
             );
         }
@@ -89,7 +101,7 @@ impl Renderer {
                 .bind_buffer(glow::ELEMENT_ARRAY_BUFFER, self.ebo);
             self.gl_glow.buffer_data_u8_slice(
                 glow::ELEMENT_ARRAY_BUFFER,
-                bytemuck::cast_slice(&self.volume.indices),
+                bytemuck::cast_slice(&self.scene.volume.indices),
                 glow::STATIC_DRAW,
             );
             self.gl_glow.vertex_attrib_pointer_f32(
@@ -137,13 +149,15 @@ impl Renderer {
                 glow::TEXTURE_3D,
                 0,
                 glow::RGB as i32,
-                self.volume.texture.dimensions.width,
-                self.volume.texture.dimensions.height,
-                self.volume.texture.dimensions.depth,
+                self.scene.volume.texture.dimensions.width,
+                self.scene.volume.texture.dimensions.height,
+                self.scene.volume.texture.dimensions.depth,
                 0,
                 glow::RED,
                 glow::UNSIGNED_BYTE,
-                Some(bytemuck::cast_slice(&self.volume.texture.texture_data)),
+                Some(bytemuck::cast_slice(
+                    &self.scene.volume.texture.texture_data,
+                )),
             );
             self.gl_glow.generate_mipmap(glow::TEXTURE_3D);
         }
@@ -152,62 +166,14 @@ impl Renderer {
 
 impl eframe::App for Renderer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.ui.frame_timer.update_frames_per_second();
+        self.scene.frame_timer.update_frames_per_second();
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical(|ui| {
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 10.0;
-                    ui.vertical(|ui| {
-                        ui.add(
-                            egui::Slider::new(&mut self.ui.lower_threshold, 0..=255)
-                                .text("Lower Threshold"),
-                        );
-                        ui.add(
-                            egui::Slider::new(&mut self.ui.upper_threshold, 0..=255)
-                                .text("Upper Threshold"),
-                        );
-                        ui.radio_value(
-                            &mut self.shader_type,
-                            ShaderType::DefaultShader,
-                            "Default shader",
-                        );
-                        ui.radio_value(&mut self.shader_type, ShaderType::MipShader, "MIP shader");
-                        ui.radio_value(&mut self.shader_type, ShaderType::AipShader, "AIP shader");
-                        ui.label(format!("FPS: {:.2}", self.ui.frame_timer.fps));
-                    });
-                    ui.vertical(|ui| {
-                        ui.add(
-                            egui::Slider::new(&mut self.camera.camera_x, -2.5..=2.5)
-                                .text("Translation X"),
-                        );
-                        ui.add(
-                            egui::Slider::new(&mut self.camera.camera_y, -2.5..=2.5)
-                                .text("Translation Y"),
-                        );
-                        ui.add(
-                            egui::Slider::new(&mut self.camera.camera_z, -2.5..=2.5)
-                                .text("Translation Z"),
-                        );
-                    });
-                    ui.vertical(|ui| {
-                        ui.add(
-                            egui::Slider::new(&mut self.camera.rotation_x, 0.0..=360.0)
-                                .text("Rotation X"),
-                        );
-                        ui.add(
-                            egui::Slider::new(&mut self.camera.rotation_y, 0.0..=360.0)
-                                .text("Rotation Y"),
-                        );
-                        ui.add(
-                            egui::Slider::new(&mut self.camera.rotation_z, 0.0..=360.0)
-                                .text("Rotation Z"),
-                        );
-                    });
-                });
-                UserInterface::plot_histogram(ui, &self.volume);
+                UserInterface::render_controls(ui, &mut self.scene);
+                UserInterface::render_histogram(ui, &self.scene.volume);
             });
             if ctx.input(|i| i.zoom_delta() != 1.0) {
-                self.camera.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
+                self.scene.camera.camera_z += ctx.input(|i| (i.zoom_delta() - 1.0));
             }
             egui::Frame::canvas(&Style {
                 visuals: Visuals::dark(),
@@ -229,18 +195,18 @@ impl eframe::App for Renderer {
                 // Create local variables to ensure thread safety.
                 let texture = self.texture;
                 let vao = self.vao;
-                let indices_length = self.volume.indices.len();
-                let camera = &self.camera;
+                let indices_length = self.scene.volume.indices.len();
+                let camera = &self.scene.camera;
                 let camera_x = camera.camera_x;
                 let camera_y = camera.camera_y;
                 let camera_z = camera.camera_z;
                 let rotation_x = camera.rotation_x;
                 let rotation_y = camera.rotation_y;
                 let rotation_z = camera.rotation_z;
-                let lower_threshold = self.ui.lower_threshold;
-                let upper_threshold = self.ui.upper_threshold;
+                let lower_threshold = self.scene.lower_threshold;
+                let upper_threshold = self.scene.upper_threshold;
 
-                let fragment_shader = match self.shader_type {
+                let fragment_shader = match self.scene.shader_type {
                     ShaderType::DefaultShader => "shaders/cookbook_shader.glsl",
                     ShaderType::MipShader => "shaders/mip_shader.glsl",
                     ShaderType::AipShader => "shaders/aip_shader.glsl",
@@ -343,6 +309,5 @@ impl eframe::App for Renderer {
                 ui.painter().add(callback);
             });
         });
-        ctx.request_repaint();
     }
 }

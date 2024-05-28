@@ -1,12 +1,12 @@
 mod renderer;
 mod shader;
+mod ui;
 mod uniform;
 mod volume;
-mod ui;
 
 fn main() {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([350.0, 380.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([500.0, 500.0]),
         multisampling: 4,
         renderer: eframe::Renderer::Glow,
         ..Default::default()
