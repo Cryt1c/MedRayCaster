@@ -315,3 +315,34 @@ impl eframe::App for Renderer {
         });
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::renderer::Camera;
+    use nalgebra::Vector3;
+
+    #[test]
+    fn test_camera_no_rotation() {
+        let camera = Camera {
+            aspect_ratio: 1.0,
+            location: Vector3::new(0.0, 0.0, -2.5),
+            rotation: Vector3::new(0.0, 0.0, 0.0),
+        };
+        let cam_pos = camera.calculate_cam_pos();
+        assert_eq!(cam_pos.x, 0.0);
+        assert_eq!(cam_pos.y, 0.0);
+        assert_eq!(cam_pos.z, -2.5);
+    }
+    #[test]
+    fn test_camera_rotation() {
+        let camera = Camera {
+            aspect_ratio: 1.0,
+            location: Vector3::new(0.0, 0.0, -1.0),
+            rotation: Vector3::new(90.0, 180.0, 0.0),
+        };
+        let cam_pos = camera.calculate_cam_pos();
+        assert_eq!(cam_pos.x, -3.821371e-15);
+        assert_eq!(cam_pos.y, 1.0);
+        assert_eq!(cam_pos.z, -4.371139e-8);
+    }
+}
