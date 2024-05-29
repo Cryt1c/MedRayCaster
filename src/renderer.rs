@@ -223,7 +223,7 @@ impl Renderer {
 
 impl Camera {
     pub fn calculate_cam_pos(&self) -> Vector3<f32> {
-        let mut cam_pos = Vector3::new(self.location.x, self.location.y, self.location.z);
+        let mut cam_pos = self.location;
         cam_pos = nalgebra_glm::rotate_x_vec3(&cam_pos, self.rotation.x.to_radians());
         cam_pos = nalgebra_glm::rotate_y_vec3(&cam_pos, self.rotation.y.to_radians());
         cam_pos = nalgebra_glm::rotate_z_vec3(&cam_pos, self.rotation.z.to_radians());
@@ -319,7 +319,9 @@ impl eframe::App for Renderer {
 #[cfg(test)]
 mod test {
     use crate::renderer::Camera;
+    use approx::assert_relative_eq;
     use nalgebra::Vector3;
+    const EPSILON: f32 = 0.001;
 
     #[test]
     fn test_camera_no_rotation() {
@@ -333,16 +335,43 @@ mod test {
         assert_eq!(cam_pos.y, 0.0);
         assert_eq!(cam_pos.z, -2.5);
     }
+
     #[test]
-    fn test_camera_rotation() {
+    fn test_camera_rotation_x() {
         let camera = Camera {
             aspect_ratio: 1.0,
             location: Vector3::new(0.0, 0.0, -1.0),
-            rotation: Vector3::new(90.0, 180.0, 0.0),
+            rotation: Vector3::new(90.0, 0.0, 0.0),
         };
-        let cam_pos = camera.calculate_cam_pos();
-        assert_eq!(cam_pos.x, -3.821371e-15);
-        assert_eq!(cam_pos.y, 1.0);
-        assert_eq!(cam_pos.z, -4.371139e-8);
+        let cam_pos = camera.calculate_cam_pos().normalize();
+        assert_relative_eq!(cam_pos.x, 0.0, epsilon = EPSILON);
+        assert_relative_eq!(cam_pos.y, 1.0, epsilon = EPSILON);
+        assert_relative_eq!(cam_pos.z, 0.0, epsilon = EPSILON);
+    }
+
+    #[test]
+    fn test_camera_rotation_y() {
+        let camera = Camera {
+            aspect_ratio: 1.0,
+            location: Vector3::new(0.0, 0.0, -1.0),
+            rotation: Vector3::new(0.0, 90.0, 0.0),
+        };
+        let cam_pos = camera.calculate_cam_pos().normalize();
+        assert_relative_eq!(cam_pos.x, -1.0, epsilon = EPSILON);
+        assert_relative_eq!(cam_pos.y, 0.0, epsilon = EPSILON);
+        assert_relative_eq!(cam_pos.z, 0.0, epsilon = EPSILON);
+    }
+
+    #[test]
+    fn test_camera_rotation_z() {
+        let camera = Camera {
+            aspect_ratio: 1.0,
+            location: Vector3::new(0.0, 0.0, -1.0),
+            rotation: Vector3::new(0.0, 0.0, 90.0),
+        };
+        let cam_pos = camera.calculate_cam_pos().normalize();
+        assert_relative_eq!(cam_pos.x, 0.0, epsilon = EPSILON);
+        assert_relative_eq!(cam_pos.y, 0.0, epsilon = EPSILON);
+        assert_relative_eq!(cam_pos.z, -1.0, epsilon = EPSILON);
     }
 }
