@@ -107,9 +107,13 @@ impl Volume {
     }
 
     pub fn normalize_hounsfield_units(value: u16) -> u8 {
-        let hu_value = value & 0x0FFF; // Use only the lower 12 bits
+        let hu_value = Volume::get_lower_12_bits(value);
         let normalized_hu_value = (hu_value as f32 / 4095.0) * 255.0; // Normalize to [0, 255]
         normalized_hu_value as u8
+    }
+
+    pub fn get_lower_12_bits(value: u16) -> u16 {
+        value & 0x0FFF // Mask the higher 4 bits
     }
 
     pub fn parse_meta_data_dim(meta_data: &str) -> Dim {
@@ -199,6 +203,15 @@ mod test {
         expected[128] = 3.0;
         expected[255] = 3.0;
         let result = Volume::calculate_histogram(&input);
+
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_use_lower_12_bits() {
+        let input: u16 = 0b1111101010101010;
+        let expected: u16 = 0b101010101010;
+        let result = Volume::get_lower_12_bits(input);
 
         assert_eq!(expected, result);
     }
