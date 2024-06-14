@@ -1,3 +1,18 @@
+### Dedalus - Medical Visualization Task ###
+
+TODO:
+- [x] Clean up original project (Cryt1c/opengl_rs).
+- [x] Implement loader for .raw files.
+- [x] Implement unit tests.
+- [x] Implement additional shader/improve existing shader.
+- [x] Improve file loading by running hounsfield unit normalization concurrently.
+- [x] Correct model positioning in world view (possible using camera controls).
+- [x] Implement histogram for density values.
+- [x] Implement threshold selection based on density values.
+- [x] Implement average intensity shader.
+
+This repository is an extension of (https://github.com/Cryt1c/opengl_rs). Original README.md:
+
 ### OpenGL Rust ###
 This repository contains a prototype for a simple OpenGL application that is able to read volumetric data (.vol files) and render it using raycasting. The application is written in Rust and uses the `glow` crate for OpenGL bindings. `egui` is used for the graphical user interface.
 

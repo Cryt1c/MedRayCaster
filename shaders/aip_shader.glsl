@@ -19,7 +19,8 @@ void main() {
     vec3 direction = normalize((vUV - vec3(0.5)) - cam_pos);
     vec3 step = direction * STEP_SIZE;
 
-    float max_value = 0.0;
+    float aggregated_value = 0.0;
+    int amount_of_samples = 0;
     bool stop = false;
 
     for (int i = 0; i < MAX_SAMPLES; i++) {
@@ -27,7 +28,8 @@ void main() {
         stop = dot(sign(data_position - MIN_TEX), sign(MAX_TEX - data_position)) < 3.0;
 
         if (stop) {
-            vFragColor.rgba = vec4(max_value, max_value, max_value, max_value);
+            float average_value = aggregated_value / amount_of_samples;
+            vFragColor.rgba = vec4(average_value, average_value, average_value, average_value);
             break;
         }
 
@@ -37,8 +39,7 @@ void main() {
         if (scaled_value < lower_threshold || scaled_value > upper_threshold)
             continue;
 
-        if (value > max_value) {
-            max_value = value;
-        }
+        aggregated_value += value;
+        amount_of_samples++;
     }
 }

@@ -5,6 +5,14 @@ pub trait Uniform {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>);
 }
 
+impl Uniform for u8 {
+    fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+        unsafe {
+            gl_glow.uniform_1_u32(location.as_ref(), *self as u32);
+        }
+    }
+}
+
 impl Uniform for f32 {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {
