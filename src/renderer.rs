@@ -6,9 +6,10 @@ use egui::{Style, Visuals};
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 use nalgebra::{Matrix4, Vector3};
 use std::{mem, sync::Arc};
+use three_d::Context;
 
 pub struct Renderer {
-    pub gl_glow: Arc<glow::Context>,
+    pub gl: Arc<three_d::Context>,
     pub vbo: Option<NativeBuffer>,
     pub vao: Option<NativeVertexArray>,
     pub ebo: Option<NativeBuffer>,
@@ -41,11 +42,8 @@ pub struct Uniforms {
 }
 
 impl Renderer {
-    pub fn new(creation_context: &eframe::CreationContext<'_>) -> Self {
-        let gl = creation_context
-            .gl
-            .as_ref()
-            .expect("You need to run eframe with the glow backend");
+    pub fn new(context: Context) -> Self {
+        let arc_context = Arc::new(context.clone());
 
         let frame_timer = FrameTimer {
             start_time: std::time::Instant::now(),
@@ -60,7 +58,7 @@ impl Renderer {
         };
 
         let mut renderer = Renderer {
-            gl_glow: gl.clone(),
+            gl: arc_context,
             vao: None,
             vbo: None,
             ebo: None,
@@ -82,15 +80,15 @@ impl Renderer {
     }
     pub fn create_vao(&mut self) {
         unsafe {
-            self.vao = self.gl_glow.create_vertex_array().ok();
-            self.gl_glow.bind_vertex_array(self.vao);
+            self.vao = self.gl.create_vertex_array().ok();
+            self.gl.bind_vertex_array(self.vao);
         }
     }
     pub fn create_vbo(&mut self) {
         unsafe {
-            self.vbo = self.gl_glow.create_buffer().ok();
-            self.gl_glow.bind_buffer(glow::ARRAY_BUFFER, self.vbo);
-            self.gl_glow.buffer_data_u8_slice(
+            self.vbo = self.gl.create_buffer().ok();
+            self.gl.bind_buffer(glow::ARRAY_BUFFER, self.vbo);
+            self.gl.buffer_data_u8_slice(
                 glow::ARRAY_BUFFER,
                 bytemuck::cast_slice(&self.scene.volume.vertex_data),
                 glow::STATIC_DRAW,
@@ -99,15 +97,14 @@ impl Renderer {
     }
     pub fn create_ebo(&mut self) {
         unsafe {
-            self.ebo = self.gl_glow.create_buffer().ok();
-            self.gl_glow
-                .bind_buffer(glow::ELEMENT_ARRAY_BUFFER, self.ebo);
-            self.gl_glow.buffer_data_u8_slice(
+            self.ebo = self.gl.create_buffer().ok();
+            self.gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, self.ebo);
+            self.gl.buffer_data_u8_slice(
                 glow::ELEMENT_ARRAY_BUFFER,
                 bytemuck::cast_slice(&self.scene.volume.indices),
                 glow::STATIC_DRAW,
             );
-            self.gl_glow.vertex_attrib_pointer_f32(
+            self.gl.vertex_attrib_pointer_f32(
                 0,
                 3,
                 glow::FLOAT,
@@ -115,40 +112,40 @@ impl Renderer {
                 3 * mem::size_of::<f32>() as i32,
                 0,
             );
-            self.gl_glow.enable_vertex_attrib_array(0);
+            self.gl.enable_vertex_attrib_array(0);
         }
     }
     pub fn create_texture(&mut self) {
         unsafe {
-            self.texture = self.gl_glow.create_texture().ok();
-            self.gl_glow.bind_texture(glow::TEXTURE_3D, self.texture);
-            self.gl_glow.tex_parameter_i32(
+            self.texture = self.gl.create_texture().ok();
+            self.gl.bind_texture(glow::TEXTURE_3D, self.texture);
+            self.gl.tex_parameter_i32(
                 glow::TEXTURE_3D,
                 glow::TEXTURE_MIN_FILTER,
                 glow::LINEAR as i32,
             );
-            self.gl_glow.tex_parameter_i32(
+            self.gl.tex_parameter_i32(
                 glow::TEXTURE_3D,
                 glow::TEXTURE_MAG_FILTER,
                 glow::LINEAR as i32,
             );
-            self.gl_glow.tex_parameter_i32(
+            self.gl.tex_parameter_i32(
                 glow::TEXTURE_3D,
                 glow::TEXTURE_WRAP_S,
                 glow::CLAMP_TO_EDGE as i32,
             );
-            self.gl_glow.tex_parameter_i32(
+            self.gl.tex_parameter_i32(
                 glow::TEXTURE_3D,
                 glow::TEXTURE_WRAP_T,
                 glow::CLAMP_TO_EDGE as i32,
             );
-            self.gl_glow.tex_parameter_i32(
+            self.gl.tex_parameter_i32(
                 glow::TEXTURE_3D,
                 glow::TEXTURE_WRAP_R,
                 glow::CLAMP_TO_EDGE as i32,
             );
 
-            self.gl_glow.tex_image_3d(
+            self.gl.tex_image_3d(
                 glow::TEXTURE_3D,
                 0,
                 glow::RGB as i32,
@@ -162,7 +159,7 @@ impl Renderer {
                     &self.scene.volume.texture.texture_data,
                 )),
             );
-            self.gl_glow.generate_mipmap(glow::TEXTURE_3D);
+            self.gl.generate_mipmap(glow::TEXTURE_3D);
         }
     }
 
