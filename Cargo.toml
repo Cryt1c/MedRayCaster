@@ -17,5 +17,6 @@ glow = "0.13.1"
 nalgebra = "0.32.4"
 nalgebra-glm = "0.18.0"
 rayon = "1.10.0"
+three-d = { version = "0.17.0", features = ["egui-gui"] }
 three-d-asset = { version = "0.7.0", features = ["vol"] }
 winit = "0.29.15"
