@@ -1,12 +1,7 @@
-mod renderer;
-mod shader;
-mod ui;
-mod uniform;
-mod volume;
-
+use med_ray_caster::renderer::Renderer;
 use three_d::*;
 
-fn main() {
+pub fn main() {
     // let options = eframe::NativeOptions {
     //     viewport: egui::ViewportBuilder::default().with_inner_size([500.0, 500.0]),
     //     multisampling: 4,
@@ -28,8 +23,8 @@ fn main() {
     .unwrap();
 
     let context = window.gl();
-    let renderer = renderer::Renderer::new(context);
-    let mut camera = Camera::new_perspective(
+    let renderer = Renderer::new(context);
+    let camera = Camera::new_perspective(
         window.viewport(),
         vec3(0.0, 0.0, 1.3),
         vec3(0.0, 0.0, 0.0),
@@ -74,19 +69,19 @@ fn main() {
             .clear(ClearState::color_and_depth(1.0, 0.0, 0.0, 1.0, 1.0))
             .write(|| gui.render())
             .unwrap();
-
-        // Secondary view
-        let secondary_viewport = Viewport {
-            x: viewport.x,
-            y: viewport.y,
-            width: 200,
-            height: 200,
-        };
-        camera.set_viewport(secondary_viewport);
-        frame_input.screen().clear_partially(
-            secondary_viewport.into(),
-            ClearState::color_and_depth(0.0, 0.0, 0.0, 1.0, 1.0),
-        );
+        //
+        // // Secondary view
+        // let secondary_viewport = Viewport {
+        //     x: viewport.x,
+        //     y: viewport.y,
+        //     width: 200,
+        //     height: 200,
+        // };
+        // camera.set_viewport(secondary_viewport);
+        // frame_input.screen().clear_partially(
+        //     secondary_viewport.into(),
+        //     ClearState::color_and_depth(0.0, 1.0, 0.0, 1.0, 1.0),
+        // );
 
         // Returns default frame output to end the frame
         FrameOutput::default()
