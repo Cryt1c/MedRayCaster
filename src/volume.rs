@@ -83,7 +83,8 @@ impl Volume {
         let dimensions = Volume::parse_meta_data_dim(&meta_data);
 
         let num_elements = dimensions.height * dimensions.width * dimensions.depth;
-        let file = File::open(file_path).expect("Unable to open RAW file");
+        // let file = File::open(file_path).expect("Unable to open RAW file");
+        let file: &[u8] = include_bytes!("../examples/assets/sinus.raw");
         let mut reader = BufReader::new(file);
 
         let mut raw_data = vec![0u16; num_elements as usize];
