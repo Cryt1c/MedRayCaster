@@ -2,7 +2,6 @@ use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use rayon::prelude::*;
 use std::fs::read_to_string;
-use std::fs::File;
 use std::io::BufReader;
 use three_d_asset::{Texture3D, TextureData};
 
