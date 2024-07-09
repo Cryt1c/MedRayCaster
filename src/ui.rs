@@ -5,12 +5,6 @@ use crate::{renderer::Scene, shader::ShaderType, volume::Volume};
 
 pub struct UserInterface;
 
-pub struct FrameTimer {
-    pub start_time: std::time::Instant,
-    pub frame_count: u32,
-    pub fps: f64,
-}
-
 impl UserInterface {
     pub fn render_histogram(ui: &mut Ui, volume: &Volume) -> Response {
         let bars = volume
@@ -48,7 +42,6 @@ impl UserInterface {
                 );
                 ui.radio_value(&mut scene.shader_type, ShaderType::MipShader, "MIP shader");
                 ui.radio_value(&mut scene.shader_type, ShaderType::AipShader, "AIP shader");
-                ui.label(format!("FPS: {:.2}", scene.frame_timer.fps));
             });
             ui.vertical(|ui| {
                 ui.add(
@@ -76,19 +69,5 @@ impl UserInterface {
                 );
             });
         });
-    }
-}
-
-impl FrameTimer {
-    pub fn update_frames_per_second(self: &mut FrameTimer) -> () {
-        let now = std::time::Instant::now();
-        let elapsed = now - self.start_time;
-        if elapsed.as_secs() > 0 {
-            let fps = self.frame_count as f64 / elapsed.as_secs_f64();
-            self.frame_count = 0;
-            self.start_time = now;
-            self.fps = fps;
-        }
-        self.frame_count += 1;
     }
 }
