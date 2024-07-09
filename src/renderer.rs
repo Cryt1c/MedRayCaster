@@ -1,19 +1,18 @@
 use crate::shader::{Shader, ShaderType};
-use crate::ui::FrameTimer;
 use crate::ui::UserInterface;
 use crate::volume::Volume;
 use egui::{Style, Visuals};
-use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
+use glow::{Buffer, HasContext, Texture, VertexArray};
 use nalgebra::{Matrix4, Vector3};
 use std::{mem, sync::Arc};
 use three_d::Context;
 
 pub struct Renderer {
     pub gl: Arc<three_d::Context>,
-    pub vbo: Option<NativeBuffer>,
-    pub vao: Option<NativeVertexArray>,
-    pub ebo: Option<NativeBuffer>,
-    pub texture: Option<NativeTexture>,
+    pub vbo: Option<Buffer>,
+    pub vao: Option<VertexArray>,
+    pub ebo: Option<Buffer>,
+    pub texture: Option<Texture>,
     pub scene: Scene,
 }
 
@@ -23,7 +22,6 @@ pub struct Scene {
     pub shader_type: ShaderType,
     pub lower_threshold: u8,
     pub upper_threshold: u8,
-    pub frame_timer: FrameTimer,
 }
 
 pub struct Camera {
@@ -45,12 +43,6 @@ impl Renderer {
     pub fn new(context: Context) -> Self {
         let arc_context = Arc::new(context.clone());
 
-        let frame_timer = FrameTimer {
-            start_time: std::time::Instant::now(),
-            frame_count: 0,
-            fps: 0.0,
-        };
-
         let camera = Camera {
             aspect_ratio: 1.0,
             location: Vector3::new(0.0, 0.0, -2.5),
@@ -67,7 +59,6 @@ impl Renderer {
                 volume: Volume::new(),
                 camera,
                 shader_type: ShaderType::DefaultShader,
-                frame_timer,
                 lower_threshold: 0,
                 upper_threshold: 255,
             },
@@ -197,7 +188,7 @@ impl Renderer {
     pub fn set_uniform_values(
         uniforms: &Uniforms,
         painter: &egui_glow::Painter,
-        program: glow::NativeProgram,
+        program: glow::Program,
     ) {
         Shader::set_uniform_value(painter.gl(), program, "cam_pos", uniforms.cam_pos);
         Shader::set_uniform_value(painter.gl(), program, "M", uniforms.model_matrix);
@@ -230,7 +221,6 @@ impl Camera {
 
 impl eframe::App for Renderer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.scene.frame_timer.update_frames_per_second();
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical(|ui| {
                 UserInterface::render_controls(ui, &mut self.scene);
