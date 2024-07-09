@@ -3,7 +3,7 @@ use byteorder::ReadBytesExt;
 use rayon::prelude::*;
 use std::fs::read_to_string;
 use std::io::BufReader;
-use three_d_asset::{Texture3D, TextureData};
+// use three_d_asset::{Texture3D, TextureData};
 
 #[derive(Debug, PartialEq)]
 pub struct Dim {
@@ -54,31 +54,32 @@ impl Volume {
         }
     }
 
-    pub fn read_vol(file_path: &str) -> Texture {
-        let texture_3d: Texture3D = three_d_asset::io::load(&[file_path])
-            .unwrap()
-            .deserialize("")
-            .unwrap();
-        let width = texture_3d.width as i32;
-        let height = texture_3d.height as i32;
-        let depth = texture_3d.depth as i32;
-        let texture_data = match texture_3d.data {
-            TextureData::RU8(data) => data,
-            _ => panic!("Expected RU8 texture data format"),
-        };
-
-        Texture {
-            dimensions: Dim {
-                width,
-                height,
-                depth,
-            },
-            texture_data,
-        }
-    }
+    // pub fn read_vol(file_path: &str) -> Texture {
+    //     let texture_3d: Texture3D = three_d_asset::io::load(&[file_path])
+    //         .unwrap()
+    //         .deserialize("")
+    //         .unwrap();
+    //     let width = texture_3d.width as i32;
+    //     let height = texture_3d.height as i32;
+    //     let depth = texture_3d.depth as i32;
+    //     let texture_data = match texture_3d.data {
+    //         TextureData::RU8(data) => data,
+    //         _ => panic!("Expected RU8 texture data format"),
+    //     };
+    //
+    //     Texture {
+    //         dimensions: Dim {
+    //             width,
+    //             height,
+    //             depth,
+    //         },
+    //         texture_data,
+    //     }
+    // }
 
     pub fn read_raw(file_path: &str, meta_file_path: &str) -> Texture {
-        let meta_data = read_to_string(meta_file_path).expect("Unable to read MHD file");
+        let meta_data = include_str!("../examples/assets/sinus.mhd"); 
+        // let meta_data = read_to_string(meta_file_path).expect("Unable to read MHD file");
         let dimensions = Volume::parse_meta_data_dim(&meta_data);
 
         let num_elements = dimensions.height * dimensions.width * dimensions.depth;

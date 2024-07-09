@@ -30,7 +30,7 @@ impl Shader {
         &self.fragment
     }
 
-    pub fn delete_shader(&self, gl_glow: &glow::Context, shader: glow::NativeShader) {
+    pub fn delete_shader(&self, gl_glow: &glow::Context, shader: glow::Shader) {
         unsafe {
             gl_glow.delete_shader(shader);
         }
@@ -41,7 +41,7 @@ impl Shader {
         gl_glow: &glow::Context,
         src: &str,
         shader_type: u32,
-    ) -> glow::NativeShader {
+    ) -> glow::Shader {
         unsafe {
             let shader = gl_glow.create_shader(shader_type).unwrap();
             gl_glow.shader_source(shader, src);
@@ -58,9 +58,9 @@ impl Shader {
     pub fn link_program(
         &self,
         gl_glow: &glow::Context,
-        vs: glow::NativeShader,
-        fs: glow::NativeShader,
-    ) -> glow::NativeProgram {
+        vs: glow::Shader,
+        fs: glow::Shader,
+    ) -> glow::Program {
         unsafe {
             let program = gl_glow.create_program().expect("Cannot create program");
             gl_glow.attach_shader(program, vs);
@@ -76,7 +76,7 @@ impl Shader {
         }
     }
 
-    pub fn use_program(&self, gl_glow: &glow::Context, program: glow::NativeProgram) {
+    pub fn use_program(&self, gl_glow: &glow::Context, program: glow::Program) {
         unsafe {
             gl_glow.use_program(Some(program));
         }
@@ -84,7 +84,7 @@ impl Shader {
 
     pub fn set_uniform_value<T: Uniform>(
         gl_glow: &glow::Context,
-        program: glow::NativeProgram,
+        program: glow::Program,
         name: &str,
         value: T,
     ) {
