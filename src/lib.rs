@@ -5,19 +5,25 @@ pub mod ui;
 pub mod uniform;
 pub mod volume;
 
-use three_d::*;
 use crate::renderer::Renderer;
+use three_d::*;
 
 // Entry point for wasm
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(start)]
-pub fn start() -> Result<(), JsValue> {
+fn init_wasm() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     console_log::init_with_level(log::Level::Debug).unwrap();
 
     use log::info;
     info!("Logging works!");
+}
+
+#[wasm_bindgen(start)]
+pub fn start() -> Result<(), JsValue> {
+
+    #[cfg(target_arch = "wasm32")]
+    init_wasm();
 
     let window = Window::new(WindowSettings {
         title: "MedRayCast".to_string(),
