@@ -1,4 +1,6 @@
-#version 330 core
+#version 300 es
+precision highp float;
+precision highp sampler3D;
 
 layout(location = 0) out vec4 vFragColor;
 
@@ -34,7 +36,7 @@ void main() {
         float value = texture(volume, data_position).r;
 
         float scaled_value = value * 255.0;
-        if (scaled_value < lower_threshold || scaled_value > upper_threshold)
+        if (scaled_value < float(lower_threshold) || scaled_value > float(upper_threshold))
             continue;
 
         if (value > max_value) {

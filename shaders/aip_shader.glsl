@@ -1,4 +1,6 @@
-#version 330 core
+#version 300 es
+precision highp float;
+precision highp sampler3D;
 
 layout(location = 0) out vec4 vFragColor;
 
