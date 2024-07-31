@@ -1,5 +1,6 @@
-#version 330
+#version 300 es
 layout(location = 0) in vec3 a_position;
+precision highp float;
 
 uniform mat4 M;
 uniform mat4 V;

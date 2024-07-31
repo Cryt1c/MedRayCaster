@@ -1134,11 +1134,11 @@ dependencies = [
 
 [[package]]
 name = "egui_plot"
-version = "0.27.2"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7854b86dc1c2d352c5270db3d600011daa913d6b554141a03939761323288a1"
+checksum = "803bfcb1ad294dd7f106e26ac9199730d16051496ddb66b10fdb6529eb43df58"
 dependencies = [
- "egui 0.27.2",
+ "egui 0.26.2",
 ]
 
 [[package]]
@@ -1976,8 +1976,7 @@ dependencies = [
  "console_error_panic_hook",
  "console_log",
  "eframe",
- "egui 0.27.2",
- "egui_glow 0.27.1",
+ "egui_glow 0.26.2",
  "egui_plot",
  "glow",
  "log",

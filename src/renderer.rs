@@ -1,10 +1,10 @@
 use crate::shader::{Shader, ShaderType};
 use crate::ui::UserInterface;
 use crate::volume::Volume;
-use egui::{Style, Visuals};
 use glow::{Buffer, HasContext, Texture, VertexArray};
 use nalgebra::{Matrix4, Vector3};
 use std::{mem, sync::Arc};
+use three_d::egui::{Style, Visuals};
 use three_d::Context;
 
 pub struct Renderer {
@@ -219,89 +219,89 @@ impl Camera {
     }
 }
 
-impl eframe::App for Renderer {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical(|ui| {
-                UserInterface::render_controls(ui, &mut self.scene);
-                UserInterface::render_histogram(ui, &self.scene.volume);
-            });
-            if ctx.input(|i| i.zoom_delta() != 1.0) {
-                self.scene.camera.location.z += ctx.input(|i| (i.zoom_delta() - 1.0));
-            }
-            egui::Frame::canvas(&Style {
-                visuals: Visuals::dark(),
-                ..Style::default()
-            })
-            .show(ui, |ui| {
-                let available_width = ui.available_width();
-                let available_height = ui.available_height();
-                let available_size = if available_width > available_height {
-                    available_height
-                } else {
-                    available_width
-                };
-                let (rect, _) = ui.allocate_exact_size(
-                    egui::Vec2::new(available_size, available_size),
-                    egui::Sense::drag(),
-                );
-                self.scene.camera.aspect_ratio = rect.aspect_ratio();
-
-                // Create local variables to ensure thread safety.
-                let texture = self.texture;
-                let vao = self.vao;
-                let indices_length = self.scene.volume.indices.len();
-                let uniforms = self.calculate_uniforms();
-
-                let fragment_shader = match self.scene.shader_type {
-                    ShaderType::DefaultShader => "shaders/cookbook_shader.glsl",
-                    ShaderType::MipShader => "shaders/mip_shader.glsl",
-                    ShaderType::AipShader => "shaders/aip_shader.glsl",
-                };
-
-                let shaders = Shader::load_from_file("shaders/vertex_shader.glsl", fragment_shader);
-
-                let callback = egui::PaintCallback {
-                    rect,
-                    callback: std::sync::Arc::new(egui_glow::CallbackFn::new(
-                        move |_info, painter| {
-                            let vs = shaders.compile_shader(
-                                painter.gl(),
-                                shaders.get_vertex(),
-                                glow::VERTEX_SHADER,
-                            );
-                            let fs = shaders.compile_shader(
-                                painter.gl(),
-                                shaders.get_fragment(),
-                                glow::FRAGMENT_SHADER,
-                            );
-                            let program = shaders.link_program(painter.gl(), vs, fs);
-                            shaders.delete_shader(painter.gl(), vs);
-                            shaders.delete_shader(painter.gl(), fs);
-                            shaders.use_program(painter.gl(), program);
-                            Renderer::set_uniform_values(&uniforms, &painter, program);
-
-                            unsafe {
-                                painter.gl().bind_texture(glow::TEXTURE_3D, texture);
-                                painter.gl().bind_vertex_array(vao);
-                                painter.gl().draw_elements(
-                                    glow::TRIANGLES,
-                                    indices_length as i32,
-                                    glow::UNSIGNED_INT,
-                                    0,
-                                );
-                                if painter.gl().get_error() != glow::NO_ERROR {
-                                    println!("Error: {}", painter.gl().get_error());
-                                }
-                            }
-                        },
-                    )),
-                };
-                ui.painter().add(callback);
-            });
-        });
-    }
-}
+// impl eframe::App for Renderer {
+// fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+//     egui::CentralPanel::default().show(ctx, |ui| {
+//         ui.vertical(|ui| {
+//             UserInterface::render_controls(ui, &mut self.scene);
+//             UserInterface::render_histogram(ui, &self.scene.volume);
+//         });
+//         if ctx.input(|i| i.zoom_delta() != 1.0) {
+//             self.scene.camera.location.z += ctx.input(|i| (i.zoom_delta() - 1.0));
+//         }
+//         egui::Frame::canvas(&Style {
+//             visuals: Visuals::dark(),
+//             ..Style::default()
+//         })
+//         .show(ui, |ui| {
+//             let available_width = ui.available_width();
+//             let available_height = ui.available_height();
+//             let available_size = if available_width > available_height {
+//                 available_height
+//             } else {
+//                 available_width
+//             };
+//             let (rect, _) = ui.allocate_exact_size(
+//                 egui::Vec2::new(available_size, available_size),
+//                 egui::Sense::drag(),
+//             );
+//             self.scene.camera.aspect_ratio = rect.aspect_ratio();
+//
+//             // Create local variables to ensure thread safety.
+//             let texture = self.texture;
+//             let vao = self.vao;
+//             let indices_length = self.scene.volume.indices.len();
+//             let uniforms = self.calculate_uniforms();
+//
+//             let fragment_shader = match self.scene.shader_type {
+//                 ShaderType::DefaultShader => "shaders/cookbook_shader.glsl",
+//                 ShaderType::MipShader => "shaders/mip_shader.glsl",
+//                 ShaderType::AipShader => "shaders/aip_shader.glsl",
+//             };
+//
+//             let shaders = Shader::load_from_file("shaders/vertex_shader.glsl", fragment_shader);
+//
+//             let callback = egui::PaintCallback {
+//                 rect,
+//                 callback: std::sync::Arc::new(egui_glow::CallbackFn::new(
+//                     move |_info, painter| {
+//                         let vs = shaders.compile_shader(
+//                             painter.gl(),
+//                             shaders.get_vertex(),
+//                             glow::VERTEX_SHADER,
+//                         );
+//                         let fs = shaders.compile_shader(
+//                             painter.gl(),
+//                             shaders.get_fragment(),
+//                             glow::FRAGMENT_SHADER,
+//                         );
+//                         let program = shaders.link_program(painter.gl(), vs, fs);
+//                         shaders.delete_shader(painter.gl(), vs);
+//                         shaders.delete_shader(painter.gl(), fs);
+//                         shaders.use_program(painter.gl(), program);
+//                         Renderer::set_uniform_values(&uniforms, &painter, program);
+//
+//                         unsafe {
+//                             painter.gl().bind_texture(glow::TEXTURE_3D, texture);
+//                             painter.gl().bind_vertex_array(vao);
+//                             painter.gl().draw_elements(
+//                                 glow::TRIANGLES,
+//                                 indices_length as i32,
+//                                 glow::UNSIGNED_INT,
+//                                 0,
+//                             );
+//                             if painter.gl().get_error() != glow::NO_ERROR {
+//                                 println!("Error: {}", painter.gl().get_error());
+//                             }
+//                         }
+//                     },
+//                 )),
+//             };
+//             ui.painter().add(callback);
+//         });
+//     });
+// }
+// }
 
 #[cfg(test)]
 mod test {
