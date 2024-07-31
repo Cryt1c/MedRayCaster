@@ -1,5 +1,5 @@
-use egui::{Color32, Response, Ui};
 use egui_plot::{Bar, BarChart, Legend, Plot};
+use three_d::egui::{Color32, Response, Slider, Ui};
 
 use crate::{renderer::Scene, shader::ShaderType, volume::Volume};
 
@@ -29,12 +29,8 @@ impl UserInterface {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 10.0;
             ui.vertical(|ui| {
-                ui.add(
-                    egui::Slider::new(&mut scene.lower_threshold, 0..=255).text("Lower Threshold"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut scene.upper_threshold, 0..=255).text("Upper Threshold"),
-                );
+                ui.add(Slider::new(&mut scene.lower_threshold, 0..=255).text("Lower Threshold"));
+                ui.add(Slider::new(&mut scene.upper_threshold, 0..=255).text("Upper Threshold"));
                 ui.radio_value(
                     &mut scene.shader_type,
                     ShaderType::DefaultShader,
@@ -44,29 +40,14 @@ impl UserInterface {
                 ui.radio_value(&mut scene.shader_type, ShaderType::AipShader, "AIP shader");
             });
             ui.vertical(|ui| {
-                ui.add(
-                    egui::Slider::new(&mut scene.camera.location.x, -2.5..=2.5)
-                        .text("Translation X"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut scene.camera.location.y, -2.5..=2.5)
-                        .text("Translation Y"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut scene.camera.location.z, -2.5..=2.5)
-                        .text("Translation Z"),
-                );
+                ui.add(Slider::new(&mut scene.camera.location.x, -2.5..=2.5).text("Translation X"));
+                ui.add(Slider::new(&mut scene.camera.location.y, -2.5..=2.5).text("Translation Y"));
+                ui.add(Slider::new(&mut scene.camera.location.z, -2.5..=2.5).text("Translation Z"));
             });
             ui.vertical(|ui| {
-                ui.add(
-                    egui::Slider::new(&mut scene.camera.rotation.x, 0.0..=360.0).text("Rotation X"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut scene.camera.rotation.y, 0.0..=360.0).text("Rotation Y"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut scene.camera.rotation.z, 0.0..=360.0).text("Rotation Z"),
-                );
+                ui.add(Slider::new(&mut scene.camera.rotation.x, 0.0..=360.0).text("Rotation X"));
+                ui.add(Slider::new(&mut scene.camera.rotation.y, 0.0..=360.0).text("Rotation Y"));
+                ui.add(Slider::new(&mut scene.camera.rotation.z, 0.0..=360.0).text("Rotation Z"));
             });
         });
     }
