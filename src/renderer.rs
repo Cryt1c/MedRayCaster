@@ -139,7 +139,7 @@ impl Renderer {
             self.gl.tex_image_3d(
                 glow::TEXTURE_3D,
                 0,
-                glow::RGB as i32,
+                glow::R8 as i32,
                 self.scene.volume.texture.dimensions.width,
                 self.scene.volume.texture.dimensions.height,
                 self.scene.volume.texture.dimensions.depth,
@@ -150,7 +150,6 @@ impl Renderer {
                     &self.scene.volume.texture.texture_data,
                 )),
             );
-            self.gl.generate_mipmap(glow::TEXTURE_3D);
         }
     }
 
