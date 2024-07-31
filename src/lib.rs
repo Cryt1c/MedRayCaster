@@ -6,9 +6,9 @@ pub mod uniform;
 pub mod volume;
 
 use crate::renderer::Renderer;
+use crate::shader::Shader;
 use crate::shader::ShaderType;
 use crate::ui::UserInterface;
-use crate::shader::Shader;
 use three_d::*;
 
 // Entry point for wasm
@@ -53,7 +53,8 @@ pub fn start() -> Result<(), JsValue> {
                         UserInterface::render_histogram(ui, &renderer.scene.volume);
                     });
                     if gui_context.input(|i| i.zoom_delta() != 1.0) {
-                        renderer.scene.camera.location.z += gui_context.input(|i| (i.zoom_delta() - 1.0));
+                        renderer.scene.camera.location.z +=
+                            gui_context.input(|i| (i.zoom_delta() - 1.0));
                     }
                     egui::Frame::canvas(&Style {
                         visuals: Visuals::dark(),
