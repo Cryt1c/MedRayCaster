@@ -107,7 +107,7 @@ pub fn start() -> Result<(), JsValue> {
                                     shaders.delete_shader(painter.gl(), vs);
                                     shaders.delete_shader(painter.gl(), fs);
                                     shaders.use_program(painter.gl(), program);
-                                    Renderer::set_uniform_values(&uniforms, &painter, program);
+                                    Renderer::set_uniform_values(&uniforms, &painter.gl(), program);
 
                                     unsafe {
                                         painter.gl().bind_texture(glow::TEXTURE_3D, texture);
