@@ -186,21 +186,21 @@ impl Renderer {
 
     pub fn set_uniform_values(
         uniforms: &Uniforms,
-        painter: &egui_glow::Painter,
+        context: &glow::Context,
         program: glow::Program,
     ) {
-        Shader::set_uniform_value(painter.gl(), program, "cam_pos", uniforms.cam_pos);
-        Shader::set_uniform_value(painter.gl(), program, "M", uniforms.model_matrix);
-        Shader::set_uniform_value(painter.gl(), program, "V", uniforms.view_matrix);
-        Shader::set_uniform_value(painter.gl(), program, "P", uniforms.projection_matrix);
+        Shader::set_uniform_value(context, program, "cam_pos", uniforms.cam_pos);
+        Shader::set_uniform_value(context, program, "M", uniforms.model_matrix);
+        Shader::set_uniform_value(context, program, "V", uniforms.view_matrix);
+        Shader::set_uniform_value(context, program, "P", uniforms.projection_matrix);
         Shader::set_uniform_value(
-            painter.gl(),
+            context,
             program,
             "lower_threshold",
             uniforms.lower_threshold,
         );
         Shader::set_uniform_value(
-            painter.gl(),
+            context,
             program,
             "upper_threshold",
             uniforms.upper_threshold,
