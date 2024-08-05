@@ -1,6 +1,8 @@
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use rayon::prelude::*;
+use std::fs::read_to_string;
+use std::fs::File;
 use std::io::BufReader;
 // use three_d_asset::{Texture3D, TextureData};
 
@@ -77,12 +79,16 @@ impl Volume {
     // }
 
     pub fn read_raw(file_path: &str, meta_file_path: &str) -> Texture {
-        let meta_data = include_str!("../examples/assets/sinus.mhd"); 
-        // let meta_data = read_to_string(meta_file_path).expect("Unable to read MHD file");
+        #[cfg(not(target_arch = "wasm32"))]
+        let meta_data = read_to_string(meta_file_path).expect("Unable to read MHD file");
+        #[cfg(target_arch = "wasm32")]
+        let meta_data = include_str!("../examples/assets/sinus.mhd");
         let dimensions = Volume::parse_meta_data_dim(&meta_data);
 
         let num_elements = dimensions.height * dimensions.width * dimensions.depth;
-        // let file = File::open(file_path).expect("Unable to open RAW file");
+        #[cfg(not(target_arch = "wasm32"))]
+        let file = File::open(file_path).expect("Unable to open RAW file");
+        #[cfg(target_arch = "wasm32")]
         let file: &[u8] = include_bytes!("../examples/assets/sinus.raw");
         let mut reader = BufReader::new(file);
 
