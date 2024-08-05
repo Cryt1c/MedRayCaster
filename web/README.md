@@ -10,10 +10,10 @@ In order to build the `three-d` examples for the web, you can follow these steps
 $ npm install
 ```
 
-3. Run (The following command builds the `triangle` example. Replace the path to the example to build other examples. You can find an overview of all examples in `examples/README.md`.)
+3. Run the following command in the root folder
 
 ```console
-$ npx wasm-pack build "../examples/triangle" --target web --out-name web --out-dir ../../web/pkg
+$ npx wasm-pack build "." --target web --out-name web --out-dir web/pkg
 ```
 
 4. Run

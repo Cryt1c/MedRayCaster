@@ -22,7 +22,7 @@ void main() {
     vec3 step = direction * STEP_SIZE;
 
     float aggregated_value = 0.0;
-    int amount_of_samples = 0;
+    float amount_of_samples = 0.0;
     bool stop = false;
 
     for (int i = 0; i < MAX_SAMPLES; i++) {
@@ -38,7 +38,7 @@ void main() {
         float value = texture(volume, data_position).r;
 
         float scaled_value = value * 255.0;
-        if (scaled_value < lower_threshold || scaled_value > upper_threshold)
+        if (scaled_value < float(lower_threshold) || scaled_value > float(upper_threshold))
             continue;
 
         aggregated_value += value;
