@@ -16,10 +16,17 @@ pub enum ShaderType {
 
 impl Shader {
     pub fn load_from_file(vertex_path: &str, fragment_path: &str) -> Shader {
-        Shader {
-            vertex: include_str!("../shaders/vertex_shader.glsl").to_string(),
-            fragment: include_str!("../shaders/mip_shader.glsl").to_string(),
+        // TODO: Find a better way to handle shaders in WASM
+        #[cfg(target_arch = "wasm32")]
+        {
+            return Shader {
+                vertex: include_str!("../shaders/vertex_shader.glsl").to_string(),
+                fragment: include_str!("../shaders/mip_shader.glsl").to_string(),
+            };
         }
+        let vertex = std::fs::read_to_string(vertex_path).expect("Cannot read vertex shader");
+        let fragment = std::fs::read_to_string(fragment_path).expect("Cannot read fragment shader");
+        Shader { vertex, fragment }
     }
 
     pub fn get_vertex(&self) -> &str {
