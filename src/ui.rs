@@ -39,16 +39,6 @@ impl UserInterface {
                 ui.radio_value(&mut scene.shader_type, ShaderType::MipShader, "MIP shader");
                 ui.radio_value(&mut scene.shader_type, ShaderType::AipShader, "AIP shader");
             });
-            ui.vertical(|ui| {
-                ui.add(Slider::new(&mut scene.camera.location.x, -2.5..=2.5).text("Translation X"));
-                ui.add(Slider::new(&mut scene.camera.location.y, -2.5..=2.5).text("Translation Y"));
-                ui.add(Slider::new(&mut scene.camera.location.z, -2.5..=2.5).text("Translation Z"));
-            });
-            ui.vertical(|ui| {
-                ui.add(Slider::new(&mut scene.camera.rotation.x, 0.0..=360.0).text("Rotation X"));
-                ui.add(Slider::new(&mut scene.camera.rotation.y, 0.0..=360.0).text("Rotation Y"));
-                ui.add(Slider::new(&mut scene.camera.rotation.z, 0.0..=360.0).text("Rotation Z"));
-            });
         });
     }
 }
