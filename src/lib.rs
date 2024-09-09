@@ -40,6 +40,8 @@ pub fn start() -> Result<(), JsValue> {
     let mut gui = three_d::GUI::new(&renderer.gl.clone());
     window.render_loop(move |mut frame_input| {
         let mut panel_width = 0.0;
+        let mut control = OrbitControl::new(*renderer.scene.camera.target(), 0.25, 100.0);
+        control.handle_events(&mut renderer.scene.camera, &mut frame_input.events);
         gui.update(
             &mut frame_input.events,
             frame_input.accumulated_time,
@@ -52,10 +54,6 @@ pub fn start() -> Result<(), JsValue> {
                         UserInterface::render_controls(ui, &mut renderer.scene);
                         UserInterface::render_histogram(ui, &renderer.scene.volume);
                     });
-                    if gui_context.input(|i| i.zoom_delta() != 1.0) {
-                        renderer.scene.camera.location.z +=
-                            gui_context.input(|i| (i.zoom_delta() - 1.0));
-                    }
                     egui::Frame::canvas(&Style {
                         visuals: Visuals::dark(),
                         ..Style::default()
@@ -72,7 +70,16 @@ pub fn start() -> Result<(), JsValue> {
                             egui::Vec2::new(available_size, available_size),
                             egui::Sense::drag(),
                         );
-                        renderer.scene.camera.aspect_ratio = rect.aspect_ratio();
+
+                        let viewport = Viewport {
+                            x: (panel_width * frame_input.device_pixel_ratio) as i32,
+                            y: 0,
+                            width: frame_input.viewport.width
+                                - (panel_width * frame_input.device_pixel_ratio) as u32,
+                            height: frame_input.viewport.height,
+                        };
+
+                        renderer.scene.camera.set_viewport(viewport);
 
                         // Create local variables to ensure thread safety.
                         let texture = renderer.texture;

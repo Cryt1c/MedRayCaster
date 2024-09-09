@@ -37,6 +37,15 @@ impl Uniform for Matrix4<f32> {
     }
 }
 
+impl Uniform for three_d_asset::Matrix4<f32> {
+    fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+        let slice: &[f32; 16] = self.as_ref();
+        unsafe {
+            gl_glow.uniform_matrix_4_f32_slice(location.as_ref(), false, slice);
+        }
+    }
+}
+
 impl Uniform for Matrix3<f32> {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {
@@ -54,6 +63,14 @@ impl Uniform for Vector2<f32> {
 }
 
 impl Uniform for Vector3<f32> {
+    fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
+        unsafe {
+            gl_glow.uniform_3_f32(location.as_ref(), self.x, self.y, self.z);
+        }
+    }
+}
+
+impl Uniform for three_d_asset::Vector3<f32> {
     fn set_uniform(&self, gl_glow: &glow::Context, location: Option<glow::UniformLocation>) {
         unsafe {
             gl_glow.uniform_3_f32(location.as_ref(), self.x, self.y, self.z);
