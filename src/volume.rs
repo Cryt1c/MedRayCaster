@@ -43,7 +43,7 @@ impl Volume {
 
         // TODO: Automatically detect file format and use specific loader.
         // let result = Volume::read_vol("examples/assets/Skull.vol");
-        let texture = Volume::read_raw("examples/assets/sinus.raw", "examples/assets/sinus.mhd");
+        let texture = Volume::read_raw("examples/assets/FullHead.raw", "examples/assets/FullHead.mhd");
 
         let histogram = Volume::calculate_histogram(&texture.texture_data);
 
