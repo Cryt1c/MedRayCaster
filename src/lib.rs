@@ -61,22 +61,16 @@ pub fn start() -> Result<(), JsValue> {
                     .show(ui, |ui| {
                         let available_width = ui.available_width();
                         let available_height = ui.available_height();
-                        let available_size = if available_width > available_height {
-                            available_height
-                        } else {
-                            available_width
-                        };
                         let (rect, _) = ui.allocate_exact_size(
-                            egui::Vec2::new(available_size, available_size),
+                            egui::Vec2::new(available_width, available_height),
                             egui::Sense::drag(),
                         );
 
                         let viewport = Viewport {
-                            x: (panel_width * frame_input.device_pixel_ratio) as i32,
+                            x: 0,
                             y: 0,
-                            width: frame_input.viewport.width
-                                - (panel_width * frame_input.device_pixel_ratio) as u32,
-                            height: frame_input.viewport.height,
+                            width: available_width as u32,
+                            height: available_height as u32,
                         };
 
                         renderer.scene.camera.set_viewport(viewport);
