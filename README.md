@@ -1,15 +1,15 @@
 # MedRayCast #
 
 Future ideas:
-- Create histogram and threshold in hounsfield units.
-- Adapt histogram when setting the threshold.
-- Make camera adaptable by dragging with the mouse on the canvas.
-- Make parts of the model selectable and markable depending on hounsfield range.
-- Add docs.rs.
+- []Create histogram and threshold in hounsfield units.
+- [] Adapt histogram when setting the threshold.
+- [x] Make camera adaptable by dragging with the mouse on the canvas.
+- [] Make parts of the model selectable and markable depending on hounsfield range.
+- [] Add docs.rs.
 - Add a file selector dialog.
-- Port to the three-d crate (exposes glow) to leverage existing helpers (e.g. Orbital Camera).
-- Implement rendering in WGPU.
-- Use WASM to deploy app to the browser.
+- [x] Port to the three-d crate (exposes glow) to leverage existing helpers (e.g. Orbital Camera).
+- [x] Implement rendering in WGPU. (different repo)
+- [x] Use WASM to deploy app to the browser.
 
 How to use:
 - The file sinus.mhd and sinus.raw must be located inside examples/assets.

@@ -52,7 +52,7 @@ pub fn start() -> Result<(), JsValue> {
                 egui::CentralPanel::default().show(gui_context, |ui| {
                     ui.vertical(|ui| {
                         UserInterface::render_controls(ui, &mut renderer.scene);
-                        UserInterface::render_histogram(ui, &renderer.scene.volume);
+                        // UserInterface::render_histogram(ui, &renderer.scene.volume);
                     });
                     egui::Frame::canvas(&Style {
                         visuals: Visuals::dark(),
