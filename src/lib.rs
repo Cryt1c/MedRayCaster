@@ -40,21 +40,19 @@ pub fn start() -> Result<(), JsValue> {
     let mut gui = three_d::GUI::new(&renderer.gl.clone());
     window.render_loop(move |mut frame_input| {
         let mut panel_width = 0.0;
-        let mut control = OrbitControl::new(*renderer.scene.camera.target(), 0.25, 100.0);
-        control.handle_events(&mut renderer.scene.camera, &mut frame_input.events);
         gui.update(
-            &mut frame_input.events,
+            &mut frame_input.events.clone(),
             frame_input.accumulated_time,
             frame_input.viewport,
             frame_input.device_pixel_ratio,
             |gui_context| {
                 use three_d::egui::*;
-                egui::CentralPanel::default().show(gui_context, |ui| {
+                CentralPanel::default().show(gui_context, |ui| {
                     ui.vertical(|ui| {
                         UserInterface::render_controls(ui, &mut renderer.scene);
                         // UserInterface::render_histogram(ui, &renderer.scene.volume);
                     });
-                    egui::Frame::canvas(&Style {
+                    Frame::canvas(&Style {
                         visuals: Visuals::dark(),
                         ..Style::default()
                     })
@@ -73,7 +71,10 @@ pub fn start() -> Result<(), JsValue> {
                             height: available_height as u32,
                         };
 
+                        let mut control =
+                            OrbitControl::new(*renderer.scene.camera.target(), 0.25, 100.0);
                         renderer.scene.camera.set_viewport(viewport);
+                        control.handle_events(&mut renderer.scene.camera, &mut frame_input.events);
 
                         // Create local variables to ensure thread safety.
                         let texture = renderer.texture;
