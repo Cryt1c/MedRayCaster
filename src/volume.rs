@@ -1,10 +1,21 @@
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
+use dicom_object::open_file;
+use dicom_object::FileDicomObject;
+use dicom_object::InMemDicomObject;
+use dicom_pixeldata::ndarray;
+use dicom_pixeldata::ndarray::ArrayBase;
+use dicom_pixeldata::ndarray::OwnedRepr;
+use dicom_pixeldata::PixelDecoder;
 use rayon::prelude::*;
+use std::ffi::OsString;
 use std::fs::read_to_string;
+use std::fs::DirEntry;
 use std::fs::File;
 use std::io::BufReader;
-// use three_d_asset::{Texture3D, TextureData};
+use three_d::f16;
+use three_d::TextureData;
+use three_d_asset::Texture3D;
 
 #[derive(Debug, PartialEq)]
 pub struct Dim {
@@ -43,7 +54,11 @@ impl Volume {
 
         // TODO: Automatically detect file format and use specific loader.
         // let result = Volume::read_vol("examples/assets/Skull.vol");
-        let texture = Volume::read_raw("examples/assets/FullHead.raw", "examples/assets/FullHead.mhd");
+        // let texture = Volume::read_raw(
+        //     "examples/assets/FullHead.raw",
+        //     "examples/assets/FullHead.mhd",
+        // );
+        let texture = Volume::read_dicom("examples/assets/DCM_0000");
 
         let histogram = Volume::calculate_histogram(&texture.texture_data);
 
@@ -52,6 +67,61 @@ impl Volume {
             indices,
             texture,
             histogram,
+        }
+    }
+
+    pub fn read_dicom(directory_path: &str) -> Texture {
+        // TODO: use directory_path
+        let directory_files = std::fs::read_dir("examples/assets/DCM_0000").unwrap();
+        let mut sorted_files: Vec<DirEntry> = directory_files.filter_map(Result::ok).collect();
+        // TODO: Sort by capture direction
+        sorted_files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+
+        let loaded_files: Vec<FileDicomObject<InMemDicomObject>> = sorted_files
+            .iter()
+            .map(|file| {
+                let mut path = OsString::from("examples/assets/DCM_0000/");
+                let file_name = file.file_name();
+                path.push(&file_name);
+
+                let file = open_file(path.to_str().unwrap()).unwrap();
+                file
+            })
+            .collect();
+
+        let decoded_pixel_data: Vec<_> = loaded_files
+            .iter()
+            .map(|file| {
+                let pixel_data = file.decode_pixel_data().unwrap();
+                return pixel_data;
+            })
+            .collect();
+
+        let arrays: Vec<ArrayBase<OwnedRepr<f16>, ndarray::Dim<[usize; 4]>>> = decoded_pixel_data
+            .into_iter()
+            .map(|data| data.to_ndarray::<f16>().unwrap())
+            .collect();
+
+        let array_views: Vec<_> = arrays.iter().map(|array| array.view()).collect();
+
+        let concat_array = ndarray::stack(ndarray::Axis(2), &array_views).unwrap();
+
+        let texture_data = concat_array
+            .into_raw_vec()
+            .into_iter()
+            .map(|value| {
+                let normalized_hu_value = (f32::from(value) / 4095.0) * 255.0; // Normalize to [0, 255]
+                normalized_hu_value as u8
+            })
+            .collect();
+
+        Texture {
+            dimensions: Dim {
+                width: 512,
+                height: 512,
+                depth: loaded_files.len() as i32,
+            },
+            texture_data,
         }
     }
 
@@ -78,39 +148,39 @@ impl Volume {
     //     }
     // }
 
-    pub fn read_raw(file_path: &str, meta_file_path: &str) -> Texture {
-        #[cfg(not(target_arch = "wasm32"))]
-        let meta_data = read_to_string(meta_file_path).expect("Unable to read MHD file");
-        #[cfg(target_arch = "wasm32")]
-        let meta_data = include_str!("../examples/assets/sinus.mhd");
-        let dimensions = Volume::parse_meta_data_dim(&meta_data);
-
-        let num_elements = dimensions.height * dimensions.width * dimensions.depth;
-        #[cfg(not(target_arch = "wasm32"))]
-        let file = File::open(file_path).expect("Unable to open RAW file");
-        #[cfg(target_arch = "wasm32")]
-        let file: &[u8] = include_bytes!("../examples/assets/sinus.raw");
-        let mut reader = BufReader::new(file);
-
-        let mut raw_data = vec![0u16; num_elements as usize];
-        reader
-            .read_u16_into::<LittleEndian>(&mut raw_data)
-            .expect("Unable to read u16 from RAW file");
-
-        let buffer: Vec<u8> = raw_data
-            .par_iter()
-            .map(|&value| Volume::normalize_hounsfield_units(value))
-            .collect();
-
-        Texture {
-            dimensions: Dim {
-                width: dimensions.width,
-                height: dimensions.height,
-                depth: dimensions.depth,
-            },
-            texture_data: buffer,
-        }
-    }
+    // pub fn read_raw(file_path: &str, meta_file_path: &str) -> Texture {
+    //     #[cfg(not(target_arch = "wasm32"))]
+    //     let meta_data = read_to_string(meta_file_path).expect("Unable to read MHD file");
+    //     #[cfg(target_arch = "wasm32")]
+    //     let meta_data = include_str!("../examples/assets/sinus.mhd");
+    //     let dimensions = Volume::parse_meta_data_dim(&meta_data);
+    //
+    //     let num_elements = dimensions.height * dimensions.width * dimensions.depth;
+    //     #[cfg(not(target_arch = "wasm32"))]
+    //     let file = File::open(file_path).expect("Unable to open RAW file");
+    //     #[cfg(target_arch = "wasm32")]
+    //     let file: &[u8] = include_bytes!("../examples/assets/sinus.raw");
+    //     let mut reader = BufReader::new(file);
+    //
+    //     let mut raw_data = vec![0u16; num_elements as usize];
+    //     reader
+    //         .read_u16_into::<LittleEndian>(&mut raw_data)
+    //         .expect("Unable to read u16 from RAW file");
+    //
+    //     let buffer: Vec<u8> = raw_data
+    //         .par_iter()
+    //         .map(|&value| Volume::normalize_hounsfield_units(value))
+    //         .collect();
+    //
+    //     Texture {
+    //         dimensions: Dim {
+    //             width: dimensions.width,
+    //             height: dimensions.height,
+    //             depth: dimensions.depth,
+    //         },
+    //         texture_data: buffer,
+    //     }
+    // }
 
     pub fn normalize_hounsfield_units(value: u16) -> u8 {
         let normalized_hu_value = (value as f32 / 4095.0) * 255.0; // Normalize to [0, 255]

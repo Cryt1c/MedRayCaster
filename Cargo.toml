@@ -11,6 +11,9 @@ bytemuck = "1.15.0"
 byteorder = "1.5.0"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
+dicom = "0.8.0"
+dicom-object = "0.8.0"
+dicom-pixeldata = { version = "0.8.0", features = ["ndarray"] }
 eframe = { version = "0.27.1", features = ["glow"] }
 egui_glow = "0.26.0"
 egui_plot = "0.26.0"
