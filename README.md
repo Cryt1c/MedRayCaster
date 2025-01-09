@@ -61,3 +61,16 @@ In this module the construction of the user controls and the histogram is done. 
 
 ### Renderer ###
 The renderer contains structs like Renderer, Scene, Camera and the Uniforms that composite the rendering. The information from these structs are used for rendering the scene. All values passed to the shaders are contained in the Uniforms.
+
+
+## WASM ##
+To build for WASM run
+
+```npx wasm-pack build "." --target web --out-name web --out-dir ./web/pkg```
+
+To serve the wasm build run the following inside the /web directory
+
+```
+npm install
+npm run serve
+```
