@@ -74,3 +74,9 @@ To serve the wasm build run the following inside the /web directory
 npm install
 npm run serve
 ```
+
+## WSL cross-compilation for windows ##
+
+```sudo apt-get install mingw-w64```
+```rustup target add x86_64-pc-windows-gnu```
+```cargo build --target x86_64-pc-windows-gnu```
