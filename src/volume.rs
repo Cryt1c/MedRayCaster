@@ -8,6 +8,7 @@ use dicom_pixeldata::ndarray::ArrayBase;
 use dicom_pixeldata::ndarray::OwnedRepr;
 use dicom_pixeldata::PixelDecoder;
 use rayon::prelude::*;
+use std::env;
 use std::ffi::OsString;
 use std::fs::read_to_string;
 use std::fs::DirEntry;
@@ -71,29 +72,24 @@ impl Volume {
     }
 
     pub fn read_dicom(directory_path: &str) -> Texture {
+        println!("{:?}", env::current_dir());
         // TODO: use directory_path
-        let directory_files = std::fs::read_dir("examples/assets/DCM_0000").unwrap();
+        let directory_path = OsString::from("../../../examples/assets/DCM_0000/");
+        let directory_files = std::fs::read_dir(&directory_path).unwrap();
         let mut sorted_files: Vec<DirEntry> = directory_files.filter_map(Result::ok).collect();
         // TODO: Sort by capture direction
         sorted_files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
 
-        let loaded_files: Vec<FileDicomObject<InMemDicomObject>> = sorted_files
+        let decoded_pixel_data: Vec<_> = sorted_files
             .iter()
             .map(|file| {
-                let mut path = OsString::from("examples/assets/DCM_0000/");
+                let mut path = OsString::from(&directory_path);
                 let file_name = file.file_name();
                 path.push(&file_name);
 
                 let file = open_file(path.to_str().unwrap()).unwrap();
-                file
-            })
-            .collect();
-
-        let decoded_pixel_data: Vec<_> = loaded_files
-            .iter()
-            .map(|file| {
                 let pixel_data = file.decode_pixel_data().unwrap();
-                return pixel_data;
+                pixel_data.to_owned()
             })
             .collect();
 
@@ -119,7 +115,7 @@ impl Volume {
             dimensions: Dim {
                 width: 512,
                 height: 512,
-                depth: loaded_files.len() as i32,
+                depth: sorted_files.len() as i32,
             },
             texture_data,
         }
@@ -276,5 +272,10 @@ mod test {
         let result = Volume::calculate_histogram(&input);
 
         assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_load_dicom_directory() {
+        Volume::read_dicom("examples/assets/DCM_0000");
     }
 }

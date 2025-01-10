@@ -1,6 +1,6 @@
 use crate::uniform::Uniform;
 use glow::HasContext;
-use std::str;
+use std::{ffi::OsString, str};
 
 pub struct Shader {
     vertex: String,
@@ -15,7 +15,7 @@ pub enum ShaderType {
 }
 
 impl Shader {
-    pub fn load_from_file(vertex_path: &str, fragment_path: &str) -> Shader {
+    pub fn load_from_file(vertex_path: OsString, fragment_path: OsString) -> Shader {
         // TODO: Find a better way to handle shaders in WASM
         #[cfg(target_arch = "wasm32")]
         {

@@ -5,6 +5,8 @@ pub mod ui;
 pub mod uniform;
 pub mod volume;
 
+use std::ffi::OsString;
+
 use crate::renderer::Renderer;
 use crate::shader::Shader;
 use crate::shader::ShaderType;
@@ -82,14 +84,21 @@ pub fn start() -> Result<(), JsValue> {
                         let indices_length = renderer.scene.volume.indices.len();
                         let uniforms = renderer.calculate_uniforms();
 
-                        let fragment_shader = match renderer.scene.shader_type {
-                            ShaderType::DefaultShader => "shaders/cookbook_shader.glsl",
-                            ShaderType::MipShader => "shaders/mip_shader.glsl",
-                            ShaderType::AipShader => "shaders/aip_shader.glsl",
-                        };
+                        // TODO: Fix path
+                        let shader_path = OsString::from("../../../shaders/");
 
-                        let shaders =
-                            Shader::load_from_file("shaders/vertex_shader.glsl", fragment_shader);
+                        let shader_file = match renderer.scene.shader_type {
+                            ShaderType::DefaultShader => "cookbook_shader.glsl",
+                            ShaderType::MipShader => "mip_shader.glsl",
+                            ShaderType::AipShader => "aip_shader.glsl",
+                        };
+                        let mut fragment_shader = shader_path.clone();
+                        fragment_shader.push(&shader_file);
+
+                        let mut vertex_shader = shader_path.clone();
+                        vertex_shader.push("vertex_shader.glsl");
+
+                        let shaders = Shader::load_from_file(vertex_shader, fragment_shader);
 
                         let callback = egui::PaintCallback {
                             rect,
