@@ -17,6 +17,7 @@ use std::io::BufReader;
 use three_d::f16;
 use three_d::TextureData;
 use three_d_asset::Texture3D;
+use tracing::debug;
 
 #[derive(Debug, PartialEq)]
 pub struct Dim {
@@ -82,32 +83,21 @@ impl Volume {
 
         let decoded_pixel_data: Vec<_> = sorted_files
             .iter()
-            .map(|file| {
+            .flat_map(|file| {
                 let mut path = OsString::from(&directory_path);
                 let file_name = file.file_name();
                 path.push(&file_name);
 
                 let file = open_file(path.to_str().unwrap()).unwrap();
                 let pixel_data = file.decode_pixel_data().unwrap();
-                pixel_data.to_owned()
-            })
-            .collect();
 
-        let arrays: Vec<ArrayBase<OwnedRepr<f16>, ndarray::Dim<[usize; 4]>>> = decoded_pixel_data
-            .into_iter()
-            .map(|data| data.to_ndarray::<f16>().unwrap())
-            .collect();
-
-        let array_views: Vec<_> = arrays.iter().map(|array| array.view()).collect();
-
-        let concat_array = ndarray::stack(ndarray::Axis(2), &array_views).unwrap();
-
-        let texture_data = concat_array
-            .into_raw_vec()
-            .into_iter()
-            .map(|value| {
-                let normalized_hu_value = (f32::from(value) / 4095.0) * 255.0; // Normalize to [0, 255]
-                normalized_hu_value as u8
+                let vec = pixel_data.to_vec::<f32>().unwrap();
+                vec.iter()
+                    .map(|pixel_data| {
+                        // Shift from -1024-1024 to 0-255
+                        return ((pixel_data + 1024.0) / 2048.0 * 255.0) as u8;
+                    })
+                    .collect::<Vec<u8>>()
             })
             .collect();
 
@@ -117,7 +107,7 @@ impl Volume {
                 height: 512,
                 depth: sorted_files.len() as i32,
             },
-            texture_data,
+            texture_data: decoded_pixel_data,
         }
     }
 
