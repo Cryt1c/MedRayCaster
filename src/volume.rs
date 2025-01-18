@@ -60,7 +60,7 @@ impl Volume {
         //     "assets/data/FullHead.raw",
         //     "assets/data/FullHead.mhd",
         // );
-        let texture = Volume::read_dicom("assets/data/DCM_0000");
+        let texture = Volume::read_dicom("assets/data/DCM_0000/");
 
         let histogram = Volume::calculate_histogram(&texture.texture_data);
 

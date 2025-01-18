@@ -47,8 +47,8 @@ fn main() {
     )
     .expect("Could not copy shaders");
 
-    fs::create_dir_all(cargo_target_dir.join("assets/dicom"))
-        .expect("assets/dicom could not be created");
+    fs::create_dir_all(cargo_target_dir.join("assets/data"))
+        .expect("assets/data could not be created");
     copy_dir_recursive(
         "assets/data",
         cargo_target_dir
