@@ -82,7 +82,7 @@ impl Volume {
         sorted_files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
 
         let decoded_pixel_data: Vec<_> = sorted_files
-            .iter()
+            .par_iter()
             .flat_map(|file| {
                 let mut path = OsString::from(&directory_path);
                 let file_name = file.file_name();
