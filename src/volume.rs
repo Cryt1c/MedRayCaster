@@ -55,12 +55,12 @@ impl Volume {
         ];
 
         // TODO: Automatically detect file format and use specific loader.
-        // let result = Volume::read_vol("examples/assets/Skull.vol");
+        // let result = Volume::read_vol("assets/data/Skull.vol");
         // let texture = Volume::read_raw(
-        //     "examples/assets/FullHead.raw",
-        //     "examples/assets/FullHead.mhd",
+        //     "assets/data/FullHead.raw",
+        //     "assets/data/FullHead.mhd",
         // );
-        let texture = Volume::read_dicom("examples/assets/DCM_0000");
+        let texture = Volume::read_dicom("assets/data/DCM_0000");
 
         let histogram = Volume::calculate_histogram(&texture.texture_data);
 
@@ -75,7 +75,7 @@ impl Volume {
     pub fn read_dicom(directory_path: &str) -> Texture {
         println!("{:?}", env::current_dir());
         // TODO: use directory_path
-        let directory_path = OsString::from("../../../examples/assets/DCM_0000/");
+        let directory_path = OsString::from("assets/data/DCM_0000/");
         let directory_files = std::fs::read_dir(&directory_path).unwrap();
         let mut sorted_files: Vec<DirEntry> = directory_files.filter_map(Result::ok).collect();
         // TODO: Sort by capture direction
@@ -138,14 +138,14 @@ impl Volume {
     //     #[cfg(not(target_arch = "wasm32"))]
     //     let meta_data = read_to_string(meta_file_path).expect("Unable to read MHD file");
     //     #[cfg(target_arch = "wasm32")]
-    //     let meta_data = include_str!("../examples/assets/sinus.mhd");
+    //     let meta_data = include_str!("../assets/data/sinus.mhd");
     //     let dimensions = Volume::parse_meta_data_dim(&meta_data);
     //
     //     let num_elements = dimensions.height * dimensions.width * dimensions.depth;
     //     #[cfg(not(target_arch = "wasm32"))]
     //     let file = File::open(file_path).expect("Unable to open RAW file");
     //     #[cfg(target_arch = "wasm32")]
-    //     let file: &[u8] = include_bytes!("../examples/assets/sinus.raw");
+    //     let file: &[u8] = include_bytes!("../assets/data/sinus.raw");
     //     let mut reader = BufReader::new(file);
     //
     //     let mut raw_data = vec![0u16; num_elements as usize];
@@ -266,6 +266,6 @@ mod test {
 
     #[test]
     fn test_load_dicom_directory() {
-        Volume::read_dicom("examples/assets/DCM_0000");
+        Volume::read_dicom("assets/data/DCM_0000");
     }
 }

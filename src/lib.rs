@@ -85,7 +85,7 @@ pub fn start() -> Result<(), JsValue> {
                         let uniforms = renderer.calculate_uniforms();
 
                         // TODO: Fix path
-                        let shader_path = OsString::from("../../../shaders/");
+                        let shader_path = OsString::from("assets/shaders/");
 
                         let shader_file = match renderer.scene.shader_type {
                             ShaderType::DefaultShader => "cookbook_shader.glsl",

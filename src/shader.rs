@@ -20,8 +20,8 @@ impl Shader {
         #[cfg(target_arch = "wasm32")]
         {
             return Shader {
-                vertex: include_str!("../shaders/vertex_shader.glsl").to_string(),
-                fragment: include_str!("../shaders/mip_shader.glsl").to_string(),
+                vertex: include_str!("../assets/shaders/vertex_shader.glsl").to_string(),
+                fragment: include_str!("../assets/shaders/mip_shader.glsl").to_string(),
             };
         }
         let vertex = std::fs::read_to_string(vertex_path).expect("Cannot read vertex shader");
