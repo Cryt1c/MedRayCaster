@@ -74,8 +74,7 @@ impl Volume {
 
     pub fn read_dicom(directory_path: &str) -> Texture {
         println!("{:?}", env::current_dir());
-        // TODO: use directory_path
-        let directory_path = OsString::from("assets/data/DCM_0000/");
+        let directory_path = OsString::from(directory_path);
         let directory_files = std::fs::read_dir(&directory_path).unwrap();
         let mut sorted_files: Vec<DirEntry> = directory_files.filter_map(Result::ok).collect();
         // TODO: Sort by capture direction
